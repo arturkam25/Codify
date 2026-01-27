@@ -54,6 +54,10 @@ def get_qp():
         qp = st.experimental_get_query_params()
         return {k: v[0] for k, v in qp.items()}
 
+def get_user_api_key():
+    """Gets user API key from session state if available."""
+    return st.session_state.get("user_api_key", None)
+
 def set_qp(**kwargs):
     """Sets query parameters."""
     try:
@@ -87,6 +91,8 @@ if "current_conversation_id" not in st.session_state:
     st.session_state.current_conversation_id = None
 if "show_forgot_password" not in st.session_state:
     st.session_state.show_forgot_password = False
+if "user_api_key" not in st.session_state:
+    st.session_state.user_api_key = ""
 
 # Get routing
 qp = get_qp()
@@ -113,16 +119,6 @@ if page == "landing":
 
     video_b64 = file_b64(VIDEO_PATH)
     logo_b64 = file_b64(LOGO_PATH)
-    
-    # Check for landing page image
-    landing_image_b64 = ""
-    import os
-    if os.path.exists("0.jpeg"):
-        landing_image_b64 = file_b64("0.jpeg")
-    elif os.path.exists("0.jpg"):
-        landing_image_b64 = file_b64("0.jpg")
-    elif os.path.exists("0.png"):
-        landing_image_b64 = file_b64("0.png")
 
     st.markdown(
         f"""
@@ -246,7 +242,6 @@ if page == "landing":
             </div>
           </div>
         </div>
-        {"<div style='position: fixed; bottom: 20px; right: 20px; z-index: 8;'><img src='data:image/jpeg;base64," + landing_image_b64 + "' style='width: 300px; border-radius: 10px;' /></div>" if landing_image_b64 else ""}
         """,
         unsafe_allow_html=True,
     )

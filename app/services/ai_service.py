@@ -14,12 +14,35 @@ from app.services.socrates_handler import should_ask_question
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Initialize OpenAI client
+# Default API key from .env file
 env = dotenv_values(".env")
-api_key = env.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
-if not api_key:
-    raise ValueError("OPENAI_API_KEY not found in .env file or environment variables")
-openai_client = OpenAI(api_key=api_key)
+_default_api_key = env.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+
+def get_openai_client(api_key: Optional[str] = None):
+    """
+    Gets an OpenAI client instance.
+    
+    Args:
+        api_key: Optional API key. If not provided, uses key from session_state or default from .env
+    
+    Returns:
+        OpenAI client instance
+    """
+    # Try to get API key from streamlit session_state if available
+    try:
+        import streamlit as st
+        if api_key is None:
+            api_key = st.session_state.get("user_api_key", None)
+    except:
+        pass
+    
+    # Use provided key, session state key, or default key
+    key_to_use = api_key or _default_api_key
+    
+    if not key_to_use:
+        raise ValueError("OPENAI_API_KEY not found. Please provide your API key in settings or set OPENAI_API_KEY in .env file")
+    
+    return OpenAI(api_key=key_to_use)
 
 MODEL_PRICINGS = {
     "gpt-4o": {
@@ -145,8 +168,9 @@ def chat_completion(
         
         logger.debug(f"Making chat completion request with model {model}, personality {personality_name or 'custom'}")
         
+        client = get_openai_client()
         response = make_api_call(
-            openai_client.chat.completions.create,
+            client.chat.completions.create,
             model=model,
             messages=full_messages
         )
@@ -165,8 +189,9 @@ def chat_completion(
                     "content": "Użytkownik powiedział 'nie wiem' trzy razy z rzędu. Teraz udziel bezpośredniej, szczegółowej odpowiedzi na jego pytanie."
                 }
                 full_messages = [system_message] + messages
+                client = get_openai_client()
                 response = make_api_call(
-                    openai_client.chat.completions.create,
+                    client.chat.completions.create,
                     model=model,
                     messages=full_messages
                 )
@@ -252,8 +277,9 @@ Kod źródłowy:
         
         logger.debug(f"Translating code from {source_language} to {target_language} (level: {level})")
         
+        client = get_openai_client()
         response = make_api_call(
-            openai_client.chat.completions.create,
+            client.chat.completions.create,
             model=model,
             messages=messages
         )
@@ -349,8 +375,9 @@ Sformatuj odpowiedź z wyraźnymi sekcjami. Dla alternatywnych implementacji uż
         
         logger.debug(f"Explaining code from image (level: {level}, use_voice: {use_voice})")
         
+        client = get_openai_client()
         response = make_api_call(
-            openai_client.chat.completions.create,
+            client.chat.completions.create,
             model=model,
             messages=messages
         )
@@ -371,6 +398,7 @@ def transcribe_audio(audio_file: Any) -> str:
     
     Args:
         audio_file: Audio file object to transcribe
+        api_key: Optional API key to use
     
     Returns:
         Transcribed text
@@ -380,8 +408,9 @@ def transcribe_audio(audio_file: Any) -> str:
     """
     try:
         logger.debug("Transcribing audio file")
+        client = get_openai_client()
         transcript = make_api_call(
-            openai_client.audio.transcriptions.create,
+            client.audio.transcriptions.create,
             file=audio_file,
             model="whisper-1"
         )
@@ -398,6 +427,7 @@ def text_to_speech(text: str, voice: str = "alloy", max_length: int = 4096) -> b
         text: Text to convert to speech
         voice: Voice to use (alloy, echo, fable, onyx, nova, shimmer)
         max_length: Maximum text length (OpenAI TTS API limit is 4096 characters)
+        api_key: Optional API key to use
     
     Returns:
         Audio content as bytes
@@ -412,8 +442,9 @@ def text_to_speech(text: str, voice: str = "alloy", max_length: int = 4096) -> b
             text = text[:max_length-3] + "..."
         
         logger.debug(f"Converting text to speech with voice {voice}")
+        client = get_openai_client()
         response = make_api_call(
-            openai_client.audio.speech.create,
+            client.audio.speech.create,
             model="tts-1",
             voice=voice,
             input=text

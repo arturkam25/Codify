@@ -120,6 +120,7 @@ def update_user_failed_attempts(user_id, failed_attempts):
     conn = get_connection()
     curr = conn.cursor()
     try:
+        # Ensure column exists
         try:
             curr.execute(
                 "ALTER TABLE users ADD COLUMN failed_attempts INTEGER DEFAULT 0;"
@@ -128,14 +129,18 @@ def update_user_failed_attempts(user_id, failed_attempts):
         except:
             pass
 
+        # Ensure failed_attempts is an integer
+        failed_attempts_int = int(failed_attempts) if failed_attempts is not None else 0
+        
         curr.execute(
             "UPDATE users SET failed_attempts = ? WHERE id = ?",
-            (int(failed_attempts), user_id)
+            (failed_attempts_int, user_id)
         )
         conn.commit()
     except Exception as e:
         conn.rollback()
         print(f"ERROR update_user_failed_attempts: {e}")
+        raise
     finally:
         conn.close()
 

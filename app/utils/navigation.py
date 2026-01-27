@@ -68,6 +68,64 @@ def render_navigation_sidebar():
         </div>
         """, unsafe_allow_html=True)
         st.markdown("---")
+        
+        # Check if user is logged in
+        user = require_login()
+        
+        # API Key Configuration Section (only show if user is logged in)
+        if user:
+            st.markdown(f"""
+            <div style="
+                color: #FFD700;
+                font-size: 1.2em;
+                font-weight: 700;
+                text-align: center;
+                border-bottom: 1px solid #FFD700;
+                padding-bottom: 8px;
+                margin-bottom: 10px;
+            ">
+                🔑 {t(current_lang, 'KLUCZ API', 'API KEY')}
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Initialize session state for API key if not exists
+            if "user_api_key" not in st.session_state:
+                st.session_state.user_api_key = ""
+            
+            # Show current status
+            if st.session_state.user_api_key:
+                st.success(t(current_lang, "✓ Używasz własnego klucza API", "✓ Using your own API key"))
+            else:
+                st.info(t(current_lang, "ℹ Używasz domyślnego klucza API", "ℹ Using default API key"))
+            
+            # API Key input
+            api_key_input = st.text_input(
+                t(current_lang, "Wprowadź swój klucz API OpenAI", "Enter your OpenAI API key"),
+                value=st.session_state.user_api_key,
+                type="password",
+                help=t(current_lang, 
+                       "Wprowadź swój klucz API OpenAI aby używać aplikacji na własnym koncie. Klucz jest przechowywany tylko w tej sesji.",
+                       "Enter your OpenAI API key to use the app with your own account. The key is stored only in this session."),
+                key="api_key_input"
+            )
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(t(current_lang, "💾 Zapisz", "💾 Save"), use_container_width=True, key="save_api_key"):
+                    if api_key_input and api_key_input.strip():
+                        st.session_state.user_api_key = api_key_input.strip()
+                        st.success(t(current_lang, "Klucz API zapisany!", "API key saved!"))
+                        st.rerun()
+                    else:
+                        st.warning(t(current_lang, "Wprowadź klucz API", "Please enter an API key"))
+            
+            with col2:
+                if st.button(t(current_lang, "🗑️ Usuń", "🗑️ Remove"), use_container_width=True, key="remove_api_key"):
+                    st.session_state.user_api_key = ""
+                    st.info(t(current_lang, "Klucz API usunięty. Używasz domyślnego klucza.", "API key removed. Using default key."))
+                    st.rerun()
+            
+            st.markdown("---")
 
         if st.button(t(current_lang, "Strona główna", "Home"), use_container_width=True, key="nav_home"):
             st.query_params["page"] = "dashboard"
@@ -95,8 +153,7 @@ def render_navigation_sidebar():
             st.rerun()
 
         # Admin only section
-        user = require_login()
-        if user.get("is_admin", False):
+        if user and user.get("is_admin", False):
             st.markdown("---")
             st.markdown(f"""
             <div style="

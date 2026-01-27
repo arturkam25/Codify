@@ -44,10 +44,33 @@ def hash_password(password):
 
 def verify_password(password, hashed):
     """Verifies a plaintext password against a stored bcrypt hash."""
-    return bcrypt.checkpw(
-        password.encode("utf-8"),
-        hashed.encode("utf-8")
-    )
+    try:
+        # Ensure password is a string
+        if not isinstance(password, str):
+            password = str(password)
+        
+        # Strip whitespace from password
+        password = password.strip()
+        
+        # Ensure hashed is bytes (bcrypt requires bytes)
+        if isinstance(hashed, str):
+            # Strip whitespace from hashed string before encoding
+            hashed = hashed.strip()
+            hashed_bytes = hashed.encode("utf-8")
+        elif isinstance(hashed, bytes):
+            hashed_bytes = hashed
+        else:
+            return False
+        
+        return bcrypt.checkpw(
+            password.encode("utf-8"),
+            hashed_bytes
+        )
+    except Exception as e:
+        import sys
+        print(f"Error in verify_password: {e}", file=sys.stderr)
+        print(f"Password type: {type(password)}, Hashed type: {type(hashed)}", file=sys.stderr)
+        return False
 
 def generate_recovery_code():
     """Generates a recovery code in the format XXXX-XXXX-XXXX."""
@@ -86,38 +109,69 @@ def authenticate_user(username, password, lang="pl"):
     if not user:
         return False, None, t("Nieprawidłowa nazwa użytkownika lub hasło.", "Invalid username or password.")
 
-    if len(user) >= 9:
-        (
-            user_id,
-            db_username,
-            password_hash,
-            is_admin,
-            disabled,
-            role,
-            email,
-            license_key,
-            failed_attempts
-        ) = user[:9]
+    # Handle different number of columns (for backward compatibility)
+    # Table has: id, username, password_hash, is_admin, disabled, role, email, license_key, failed_attempts, recovery_code
+    user_id = user[0]
+    db_username = user[1]
+    password_hash = user[2] if len(user) > 2 else None
+    is_admin = user[3] if len(user) > 3 else 0
+    disabled = user[4] if len(user) > 4 else 0
+    role = user[5] if len(user) > 5 else None
+    email = user[6] if len(user) > 6 else None
+    license_key = user[7] if len(user) > 7 else None
+    
+    # failed_attempts is at index 8 (if exists)
+    if len(user) > 8:
+        failed_attempts = user[8] if user[8] is not None else 0
     else:
-        (
-            user_id,
-            db_username,
-            password_hash,
-            is_admin,
-            disabled,
-            role,
-            email,
-            license_key
-        ) = user[:8]
+        failed_attempts = 0
+    
+    # Ensure failed_attempts is an integer
+    try:
+        failed_attempts = int(failed_attempts) if failed_attempts is not None else 0
+    except (ValueError, TypeError):
         failed_attempts = 0
 
-    if disabled:
-        return False, None, t(
-            "Twoje konto zostało zablokowane po wielu nieudanych próbach logowania. Skontaktuj się z administratorem.",
-            "Your account has been locked after multiple failed login attempts. Please contact the administrator."
-        )
+    # Check if password_hash exists
+    if not password_hash:
+        return False, None, t("Nieprawidłowa nazwa użytkownika lub hasło.", "Invalid username or password.")
 
-    if verify_password(password, password_hash):
+    # Check if account is disabled (but don't reveal this if password is wrong)
+    # We'll check this after password verification to avoid information leakage
+
+    # Verify password
+    try:
+        # Ensure password_hash is a string (not bytes)
+        if isinstance(password_hash, bytes):
+            password_hash = password_hash.decode("utf-8")
+        
+        # Strip any whitespace from password_hash (in case of database issues)
+        password_hash = password_hash.strip() if password_hash else ""
+        
+        # Strip whitespace from password input
+        password = password.strip() if password else ""
+        
+        if not password_hash:
+            return False, None, t("Nieprawidłowa nazwa użytkownika lub hasło.", "Invalid username or password.")
+        
+        password_valid = verify_password(password, password_hash)
+    except Exception as e:
+        # Log the error for debugging
+        import sys
+        print(f"Password verification error: {e}", file=sys.stderr)
+        print(f"Password hash type: {type(password_hash)}", file=sys.stderr)
+        print(f"Password hash length: {len(password_hash) if password_hash else 0}", file=sys.stderr)
+        # If password verification fails due to error, treat as invalid password
+        password_valid = False
+    
+    if password_valid:
+        # Check if account is disabled AFTER password verification (to avoid information leakage)
+        if disabled:
+            return False, None, t(
+                "Twoje konto zostało zablokowane po wielu nieudanych próbach logowania. Skontaktuj się z administratorem lub użyj funkcji odzyskiwania hasła.",
+                "Your account has been locked after multiple failed login attempts. Please contact the administrator or use password recovery."
+            )
+        
         update_user_failed_attempts(user_id, 0)
         
         # If no admin exists, make this user the first admin
@@ -139,7 +193,8 @@ def authenticate_user(username, password, lang="pl"):
 
         return True, user_data, t("Logowanie udane.", "Login successful.")
 
-    failed_attempts = (failed_attempts or 0) + 1
+    # Password is invalid - increment failed attempts
+    failed_attempts = failed_attempts + 1
     update_user_failed_attempts(user_id, failed_attempts)
 
     remaining = MAX_ATTEMPTS - failed_attempts
