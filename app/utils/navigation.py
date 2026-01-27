@@ -106,52 +106,56 @@ def render_navigation_sidebar():
                     "ℹ No API key set. AI features will be unavailable until you enter your own key."
                 ))
             
-            # API Key input - use form to avoid session_state conflicts
-            # Store input in a separate variable that's not a widget key
-            input_storage = "nav_api_key_input"
+            # API Key input - use a separate key for widget to avoid conflicts
+            widget_key = "api_key_widget_value"
             
-            # Initialize with current user_api_key value
-            if input_storage not in st.session_state:
-                st.session_state[input_storage] = st.session_state.user_api_key
+            # Initialize widget value from user_api_key only on first render
+            if widget_key not in st.session_state:
+                st.session_state[widget_key] = st.session_state.user_api_key
             
-            with st.form("api_key_form", clear_on_submit=False):
-                api_key_input = st.text_input(
-                    t(current_lang, "Wprowadź swój klucz API OpenAI", "Enter your OpenAI API key"),
-                    value=st.session_state[input_storage],
-                    type="password",
-                    help=t(current_lang, 
-                           "Wprowadź swój klucz API OpenAI aby używać aplikacji na własnym koncie. Klucz jest przechowywany tylko w tej sesji.",
-                           "Enter your OpenAI API key to use the app with your own account. The key is stored only in this session."),
-                    key=input_storage
-                )
-                
-                col1, col2 = st.columns(2)
-                with col1:
+            # If user_api_key was cleared, sync widget BEFORE creating it
+            # This is safe because we're modifying before widget instantiation
+            if st.session_state.user_api_key == "" and st.session_state.get(widget_key, "") != "":
+                st.session_state[widget_key] = ""
+            
+            # Create input field
+            api_key_input = st.text_input(
+                t(current_lang, "Wprowadź swój klucz API OpenAI", "Enter your OpenAI API key"),
+                value=st.session_state[widget_key],
+                type="password",
+                help=t(current_lang, 
+                       "Wprowadź swój klucz API OpenAI aby używać aplikacji na własnym koncie. Klucz jest przechowywany tylko w tej sesji.",
+                       "Enter your OpenAI API key to use the app with your own account. The key is stored only in this session."),
+                key=widget_key
+            )
+            
+            col1, col2 = st.columns(2)
+            
+            # Save button - separate form to avoid conflicts
+            with col1:
+                with st.form("save_api_key_form", clear_on_submit=False):
                     save_clicked = st.form_submit_button(t(current_lang, "💾 Zapisz", "💾 Save"), use_container_width=True)
-                with col2:
-                    remove_clicked = st.form_submit_button(t(current_lang, "🗑️ Usuń", "🗑️ Remove"), use_container_width=True)
+                    if save_clicked:
+                        if api_key_input and api_key_input.strip():
+                            st.session_state.user_api_key = api_key_input.strip()
+                            st.success(t(current_lang, "Klucz API zapisany!", "API key saved!"))
+                            st.rerun()
+                        else:
+                            st.warning(t(current_lang, "Wprowadź klucz API", "Please enter an API key"))
             
-            # Handle save button - form submission happens after widget creation
-            if save_clicked:
-                if api_key_input and api_key_input.strip():
-                    # Only update user_api_key - the widget's value is already in session_state
-                    st.session_state.user_api_key = api_key_input.strip()
-                    st.success(t(current_lang, "Klucz API zapisany!", "API key saved!"))
+            # Remove button - separate form to avoid conflicts  
+            with col2:
+                remove_clicked = st.button(t(current_lang, "🗑️ Usuń", "🗑️ Remove"), use_container_width=True, key="remove_api_key")
+                if remove_clicked:
+                    # Clear user_api_key (safe - not a widget key)
+                    st.session_state.user_api_key = ""
+                    # Widget value will be synced on next render (lines 118-119)
+                    st.info(t(
+                        current_lang,
+                        "Klucz API usunięty. Funkcje AI będą niedostępne, dopóki nie podasz nowego klucza.",
+                        "API key removed. AI features will be unavailable until you enter a new key."
+                    ))
                     st.rerun()
-                else:
-                    st.warning(t(current_lang, "Wprowadź klucz API", "Please enter an API key"))
-            
-            # Handle remove button
-            if remove_clicked:
-                st.session_state.user_api_key = ""
-                if input_storage in st.session_state:
-                    del st.session_state[input_storage]
-                st.info(t(
-                    current_lang,
-                    "Klucz API usunięty. Funkcje AI będą niedostępne, dopóki nie podasz nowego klucza.",
-                    "API key removed. AI features will be unavailable until you enter a new key."
-                ))
-                st.rerun()
             
             st.markdown("---")
 
