@@ -106,17 +106,20 @@ def render_navigation_sidebar():
                     "ℹ No API key set. AI features will be unavailable until you enter your own key."
                 ))
             
-            # API Key input - use a single form with both buttons
-            # Widget key that changes when clearing to force recreation
-            widget_key_base = "api_key_widget"
+            # API Key input - use query parameter to force complete widget reset
+            widget_key = "api_key_input_widget"
             
-            # Counter to force widget recreation
-            if "api_key_widget_version" not in st.session_state:
-                st.session_state.api_key_widget_version = 0
+            # Check if we need to reset (via query param or session state)
+            reset_flag = st.query_params.get("reset_api_key", "false") == "true"
+            if reset_flag:
+                st.session_state.user_api_key = ""
+                if widget_key in st.session_state:
+                    del st.session_state[widget_key]
+                # Remove query param
+                if "reset_api_key" in st.query_params:
+                    del st.query_params["reset_api_key"]
             
-            widget_key = f"{widget_key_base}_v{st.session_state.api_key_widget_version}"
-            
-            # Initialize widget value
+            # Initialize widget value from user_api_key
             if widget_key not in st.session_state:
                 st.session_state[widget_key] = st.session_state.user_api_key
             
@@ -124,7 +127,7 @@ def render_navigation_sidebar():
             with st.form("api_key_form", clear_on_submit=False):
                 api_key_input = st.text_input(
                     t(current_lang, "Wprowadź swój klucz API OpenAI", "Enter your OpenAI API key"),
-                    value=st.session_state[widget_key],
+                    value="" if reset_flag else st.session_state[widget_key],
                     type="password",
                     help=t(current_lang, 
                            "Wprowadź swój klucz API OpenAI aby używać aplikacji na własnym koncie. Klucz jest przechowywany tylko w tej sesji.",
@@ -144,20 +147,20 @@ def render_navigation_sidebar():
             if save_clicked:
                 if api_key_input and api_key_input.strip():
                     st.session_state.user_api_key = api_key_input.strip()
+                    st.session_state[widget_key] = api_key_input.strip()
                     st.success(t(current_lang, "Klucz API zapisany!", "API key saved!"))
                     st.rerun()
                 else:
                     st.warning(t(current_lang, "Wprowadź klucz API", "Please enter an API key"))
             
-            # Handle remove - increment version to force widget recreation
+            # Handle remove - use query parameter to force complete reset
             if remove_clicked:
                 st.session_state.user_api_key = ""
-                # Increment version counter to create new widget with empty value
-                st.session_state.api_key_widget_version += 1
-                # Delete all old widget keys (cleanup)
-                for key in list(st.session_state.keys()):
-                    if key.startswith(f"{widget_key_base}_v") and key != f"{widget_key_base}_v{st.session_state.api_key_widget_version}":
-                        del st.session_state[key]
+                # Delete widget key
+                if widget_key in st.session_state:
+                    del st.session_state[widget_key]
+                # Use query parameter to force widget reset on next render
+                st.query_params["reset_api_key"] = "true"
                 st.info(t(
                     current_lang,
                     "Klucz API usunięty. Funkcje AI będą niedostępne, dopóki nie podasz nowego klucza.",
