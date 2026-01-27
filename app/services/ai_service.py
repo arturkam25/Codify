@@ -2,10 +2,8 @@
 # AI SERVICE FOR CODE TRANSLATION AND CHAT
 # ==============================================================================
 
-import os
 import logging
 from typing import Dict, List, Optional, Any
-from dotenv import dotenv_values
 from openai import OpenAI
 from openai import APIError, RateLimitError, APIConnectionError
 from app.services.personalities import get_personality, PERSONALITIES
@@ -14,35 +12,30 @@ from app.services.socrates_handler import should_ask_question
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Default API key from .env file
-env = dotenv_values(".env")
-_default_api_key = env.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
-
-def get_openai_client(api_key: Optional[str] = None):
+def get_openai_client() -> OpenAI:
     """
     Gets an OpenAI client instance.
-    
-    Args:
-        api_key: Optional API key. If not provided, uses key from session_state or default from .env
     
     Returns:
         OpenAI client instance
     """
-    # Try to get API key from streamlit session_state if available
+    api_key: Optional[str] = None
+
+    # Try to get API key from Streamlit session_state if available
     try:
         import streamlit as st
-        if api_key is None:
-            api_key = st.session_state.get("user_api_key", None)
-    except:
-        pass
-    
-    # Use provided key, session state key, or default key
-    key_to_use = api_key or _default_api_key
-    
-    if not key_to_use:
-        raise ValueError("OPENAI_API_KEY not found. Please provide your API key in settings or set OPENAI_API_KEY in .env file")
-    
-    return OpenAI(api_key=key_to_use)
+        api_key = st.session_state.get("user_api_key")
+    except Exception:
+        # Not running inside Streamlit – no session_state available
+        api_key = None
+
+    if not api_key:
+        # No API key provided – instruct user to set it in the UI
+        raise ValueError(
+            "Brak klucza OpenAI API. Wprowadź swój klucz w panelu bocznym aplikacji."
+        )
+
+    return OpenAI(api_key=api_key)
 
 MODEL_PRICINGS = {
     "gpt-4o": {

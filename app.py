@@ -1695,6 +1695,12 @@ else:
                             transcribed_text = transcribe_audio(audio_file)
                             st.session_state.transcribed_text = transcribed_text
                             st.rerun()
+                        except ValueError:
+                            st.info(t(
+                                lang,
+                                "Aby skorzystać z transkrypcji, wprowadź swój klucz OpenAI API w panelu bocznym (sekcja „KLUCZ API”).",
+                                "To use transcription, enter your OpenAI API key in the sidebar (\"API KEY\" section)."
+                            ))
                         except Exception as e:
                             st.error(f"{t(lang, 'Błąd:', 'Error:')} {e}")
             
@@ -1869,22 +1875,29 @@ else:
                         personality_for_api = selected_personality
                     selected_model = conversation.get('model', DEFAULT_MODEL)
                     
-                    response = chat_completion(
-                        api_messages,
-                        personality=personality_for_api,
-                        model=selected_model,
-                        conversation_history=messages
-                    )
-                    
-                    st.markdown(response["content"])
-                    
-                    # Calculate and log cost with correct model
-                    cost = calculate_cost(response["usage"], model=selected_model)
-                    if cost > 0:  # Only log if cost is greater than 0
-                        log_cost(user['id'], cost, conversation_id=conv_id)
-                    
-                    # Add assistant message
-                    add_message(conv_id, "assistant", response["content"], response["usage"])
+                    try:
+                        response = chat_completion(
+                            api_messages,
+                            personality=personality_for_api,
+                            model=selected_model,
+                            conversation_history=messages
+                        )
+                    except ValueError:
+                        st.info(t(
+                            lang,
+                            "Aby korzystać z czatu, wprowadź swój klucz OpenAI API w panelu bocznym (sekcja „KLUCZ API”).",
+                            "To use chat, enter your OpenAI API key in the sidebar (\"API KEY\" section)."
+                        ))
+                    else:
+                        st.markdown(response["content"])
+                        
+                        # Calculate and log cost with correct model
+                        cost = calculate_cost(response["usage"], model=selected_model)
+                        if cost > 0:  # Only log if cost is greater than 0
+                            log_cost(user['id'], cost, conversation_id=conv_id)
+                        
+                        # Add assistant message
+                        add_message(conv_id, "assistant", response["content"], response["usage"])
             
             st.rerun()
 
@@ -2094,11 +2107,19 @@ Kod do analizy:
                                 prompt += " Odpowiedz w sposób odpowiedni do odczytania na głos - użyj prostego języka i krótkich zdań."
                         
                         from app.services.ai_service import chat_completion
-                        response = chat_completion(
-                            [{"role": "user", "content": prompt}],
-                            personality="default",
-                            model=selected_model
-                        )
+                        try:
+                            response = chat_completion(
+                                [{"role": "user", "content": prompt}],
+                                personality="default",
+                                model=selected_model
+                            )
+                        except ValueError:
+                            st.info(t(
+                                lang,
+                                "Aby skorzystać z analizy kodu przez AI, wprowadź swój klucz OpenAI API w panelu bocznym (sekcja „KLUCZ API”).",
+                                "To use AI code analysis, enter your OpenAI API key in the sidebar (\"API KEY\" section)."
+                            ))
+                            st.stop()
                         
                         # For advanced level, try to extract and display alternative code versions side by side
                         if translation_level == "advanced":
@@ -2191,6 +2212,12 @@ Kod do analizy:
                                         f"⚠️ Tekst został skrócony do 4096 znaków dla wersji audio (oryginał: {len(response['content'])} znaków).",
                                         f"⚠️ Text was truncated to 4096 characters for audio version (original: {len(response['content'])} characters)."
                                     ))
+                            except ValueError:
+                                st.info(t(
+                                    lang,
+                                    "Aby wygenerować dźwięk, wprowadź swój klucz OpenAI API w panelu bocznym (sekcja „KLUCZ API”).",
+                                    "To generate audio, enter your OpenAI API key in the sidebar (\"API KEY\" section)."
+                                ))
                             except Exception as e:
                                 st.error(f"{t(lang, 'Błąd generowania audio:', 'Audio generation error:')} {e}")
                         
@@ -2209,11 +2236,19 @@ Code:
 Kod:
 ```\n{code_text}\n```"""
                                 
-                                narrate_response = chat_completion(
-                                    [{"role": "user", "content": narrate_prompt}],
-                                    personality="default",
-                                    model=selected_model
-                                )
+                                try:
+                                    narrate_response = chat_completion(
+                                        [{"role": "user", "content": narrate_prompt}],
+                                        personality="default",
+                                        model=selected_model
+                                    )
+                                except ValueError:
+                                    st.info(t(
+                                        lang,
+                                        "Aby skorzystać z narracji audio, wprowadź swój klucz OpenAI API w panelu bocznym (sekcja „KLUCZ API”).",
+                                        "To use audio narration, enter your OpenAI API key in the sidebar (\"API KEY\" section)."
+                                    ))
+                                    raise
                                 
                                 # Calculate and log cost for narration
                                 narrate_cost = calculate_cost(narrate_response["usage"], model=selected_model)
@@ -2221,8 +2256,15 @@ Kod:
                                 
                                 # Truncate text to 4096 characters for TTS API
                                 narrate_text = narrate_response["content"][:4093] + "..." if len(narrate_response["content"]) > 4096 else narrate_response["content"]
-                                narrate_audio = text_to_speech(narrate_text)
-                                st.audio(narrate_audio, format='audio/mp3')
+                                try:
+                                    narrate_audio = text_to_speech(narrate_text)
+                                    st.audio(narrate_audio, format='audio/mp3')
+                                except ValueError:
+                                    st.info(t(
+                                        lang,
+                                        "Aby wygenerować narrację audio, wprowadź swój klucz OpenAI API w panelu bocznym (sekcja „KLUCZ API”).",
+                                        "To generate audio narration, enter your OpenAI API key in the sidebar (\"API KEY\" section)."
+                                    ))
                                 
                                 if len(narrate_response["content"]) > 4096:
                                     st.warning(t(lang, 
@@ -2261,13 +2303,21 @@ Kod:
                             # Get explanation
                             # Convert voice_option to use_voice boolean for backward compatibility
                             use_voice_bool = voice_option in ["read", "both"]
-                            result = explain_code_from_image(
-                                image_b64,
-                                level=translation_level,
-                                model=selected_model,
-                                use_voice=use_voice_bool,
-                                lang=lang
-                            )
+                            try:
+                                result = explain_code_from_image(
+                                    image_b64,
+                                    level=translation_level,
+                                    model=selected_model,
+                                    use_voice=use_voice_bool,
+                                    lang=lang
+                                )
+                            except ValueError:
+                                st.info(t(
+                                    lang,
+                                    "Aby skorzystać z wyjaśniania kodu ze zdjęcia, wprowadź swój klucz OpenAI API w panelu bocznym (sekcja „KLUCZ API”).",
+                                    "To use explaining code from image, enter your OpenAI API key in the sidebar (\"API KEY\" section)."
+                                ))
+                                st.stop()
                             
                             # For advanced level, try to extract and display alternative code versions side by side
                             if translation_level == "advanced":
@@ -2357,6 +2407,12 @@ Kod:
                                             f"⚠️ Tekst został skrócony do 4096 znaków dla wersji audio (oryginał: {len(result['explanation'])} znaków).",
                                             f"⚠️ Text was truncated to 4096 characters for audio version (original: {len(result['explanation'])} characters)."
                                         ))
+                                except ValueError:
+                                    st.info(t(
+                                        lang,
+                                        "Aby wygenerować dźwięk, wprowadź swój klucz OpenAI API w panelu bocznym (sekcja „KLUCZ API”).",
+                                        "To generate audio, enter your OpenAI API key in the sidebar (\"API KEY\" section)."
+                                    ))
                                 except Exception as e:
                                     st.error(f"{t(lang, 'Błąd generowania audio:', 'Audio generation error:')} {e}")
                             
@@ -2376,11 +2432,19 @@ Based on this explanation:
 Na podstawie tego wyjaśnienia:
 {result["explanation"][:1000]}"""
                                     
-                                    narrate_response = chat_completion(
-                                        [{"role": "user", "content": narrate_prompt}],
-                                        personality="default",
-                                        model=selected_model
-                                    )
+                                    try:
+                                        narrate_response = chat_completion(
+                                            [{"role": "user", "content": narrate_prompt}],
+                                            personality="default",
+                                            model=selected_model
+                                        )
+                                    except ValueError:
+                                        st.info(t(
+                                            lang,
+                                            "Aby skorzystać z narracji audio, wprowadź swój klucz OpenAI API w panelu bocznym (sekcja „KLUCZ API”).",
+                                            "To use audio narration, enter your OpenAI API key in the sidebar (\"API KEY\" section)."
+                                        ))
+                                        raise
                                     
                                     # Calculate and log cost for narration
                                     narrate_cost = calculate_cost(narrate_response["usage"], model=selected_model)
@@ -2388,8 +2452,15 @@ Na podstawie tego wyjaśnienia:
                                     
                                     # Truncate text to 4096 characters for TTS API
                                     narrate_text = narrate_response["content"][:4093] + "..." if len(narrate_response["content"]) > 4096 else narrate_response["content"]
-                                    narrate_audio = text_to_speech(narrate_text)
-                                    st.audio(narrate_audio, format='audio/mp3')
+                                    try:
+                                        narrate_audio = text_to_speech(narrate_text)
+                                        st.audio(narrate_audio, format='audio/mp3')
+                                    except ValueError:
+                                        st.info(t(
+                                            lang,
+                                            "Aby wygenerować narrację audio, wprowadź swój klucz OpenAI API w panelu bocznym (sekcja „KLUCZ API”).",
+                                            "To generate audio narration, enter your OpenAI API key in the sidebar (\"API KEY\" section)."
+                                        ))
                                     
                                     if len(narrate_response["content"]) > 4096:
                                         st.warning(t(lang, 
