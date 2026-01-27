@@ -106,59 +106,64 @@ def render_navigation_sidebar():
                     "ℹ No API key set. AI features will be unavailable until you enter your own key."
                 ))
             
-            # API Key input - use dynamic key that changes when clearing to force widget recreation
+            # API Key input - use a single form with both buttons
+            # Widget key that changes when clearing to force recreation
             widget_key_base = "api_key_widget"
             
-            # Use a counter to force widget recreation when clearing
-            if "api_key_widget_counter" not in st.session_state:
-                st.session_state.api_key_widget_counter = 0
+            # Counter to force widget recreation
+            if "api_key_widget_version" not in st.session_state:
+                st.session_state.api_key_widget_version = 0
             
-            widget_key = f"{widget_key_base}_{st.session_state.api_key_widget_counter}"
+            widget_key = f"{widget_key_base}_v{st.session_state.api_key_widget_version}"
             
-            # Initialize widget value from user_api_key only on first render
+            # Initialize widget value
             if widget_key not in st.session_state:
                 st.session_state[widget_key] = st.session_state.user_api_key
             
-            # Create input field
-            api_key_input = st.text_input(
-                t(current_lang, "Wprowadź swój klucz API OpenAI", "Enter your OpenAI API key"),
-                value=st.session_state[widget_key],
-                type="password",
-                help=t(current_lang, 
-                       "Wprowadź swój klucz API OpenAI aby używać aplikacji na własnym koncie. Klucz jest przechowywany tylko w tej sesji.",
-                       "Enter your OpenAI API key to use the app with your own account. The key is stored only in this session."),
-                key=widget_key
-            )
+            # Main form containing input and buttons
+            with st.form("api_key_form", clear_on_submit=False):
+                api_key_input = st.text_input(
+                    t(current_lang, "Wprowadź swój klucz API OpenAI", "Enter your OpenAI API key"),
+                    value=st.session_state[widget_key],
+                    type="password",
+                    help=t(current_lang, 
+                           "Wprowadź swój klucz API OpenAI aby używać aplikacji na własnym koncie. Klucz jest przechowywany tylko w tej sesji.",
+                           "Enter your OpenAI API key to use the app with your own account. The key is stored only in this session."),
+                    key=widget_key
+                )
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    save_clicked = st.form_submit_button(t(current_lang, "💾 Zapisz", "💾 Save"), use_container_width=True)
+                
+                with col2:
+                    remove_clicked = st.form_submit_button(t(current_lang, "🗑️ Usuń", "🗑️ Remove"), use_container_width=True)
             
-            col1, col2 = st.columns(2)
-            
-            # Save button
-            with col1:
-                if st.button(t(current_lang, "💾 Zapisz", "💾 Save"), use_container_width=True, key="save_api_key"):
-                    if api_key_input and api_key_input.strip():
-                        st.session_state.user_api_key = api_key_input.strip()
-                        st.session_state[widget_key] = api_key_input.strip()  # Sync widget
-                        st.success(t(current_lang, "Klucz API zapisany!", "API key saved!"))
-                        st.rerun()
-                    else:
-                        st.warning(t(current_lang, "Wprowadź klucz API", "Please enter an API key"))
-            
-            # Remove button - increment counter to force widget recreation
-            with col2:
-                if st.button(t(current_lang, "🗑️ Usuń", "🗑️ Remove"), use_container_width=True, key="remove_api_key"):
-                    # Clear user_api_key
-                    st.session_state.user_api_key = ""
-                    # Increment counter to force widget recreation with new key (empty value)
-                    st.session_state.api_key_widget_counter += 1
-                    # Delete old widget key
-                    if widget_key in st.session_state:
-                        del st.session_state[widget_key]
-                    st.info(t(
-                        current_lang,
-                        "Klucz API usunięty. Funkcje AI będą niedostępne, dopóki nie podasz nowego klucza.",
-                        "API key removed. AI features will be unavailable until you enter a new key."
-                    ))
+            # Handle save
+            if save_clicked:
+                if api_key_input and api_key_input.strip():
+                    st.session_state.user_api_key = api_key_input.strip()
+                    st.success(t(current_lang, "Klucz API zapisany!", "API key saved!"))
                     st.rerun()
+                else:
+                    st.warning(t(current_lang, "Wprowadź klucz API", "Please enter an API key"))
+            
+            # Handle remove - increment version to force widget recreation
+            if remove_clicked:
+                st.session_state.user_api_key = ""
+                # Increment version counter to create new widget with empty value
+                st.session_state.api_key_widget_version += 1
+                # Delete all old widget keys (cleanup)
+                for key in list(st.session_state.keys()):
+                    if key.startswith(f"{widget_key_base}_v") and key != f"{widget_key_base}_v{st.session_state.api_key_widget_version}":
+                        del st.session_state[key]
+                st.info(t(
+                    current_lang,
+                    "Klucz API usunięty. Funkcje AI będą niedostępne, dopóki nie podasz nowego klucza.",
+                    "API key removed. AI features will be unavailable until you enter a new key."
+                ))
+                st.rerun()
             
             st.markdown("---")
 
