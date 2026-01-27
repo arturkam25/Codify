@@ -106,17 +106,18 @@ def render_navigation_sidebar():
                     "ℹ No API key set. AI features will be unavailable until you enter your own key."
                 ))
             
-            # API Key input - use a separate key for widget to avoid conflicts
-            widget_key = "api_key_widget_value"
+            # API Key input - use dynamic key that changes when clearing to force widget recreation
+            widget_key_base = "api_key_widget"
+            
+            # Use a counter to force widget recreation when clearing
+            if "api_key_widget_counter" not in st.session_state:
+                st.session_state.api_key_widget_counter = 0
+            
+            widget_key = f"{widget_key_base}_{st.session_state.api_key_widget_counter}"
             
             # Initialize widget value from user_api_key only on first render
             if widget_key not in st.session_state:
                 st.session_state[widget_key] = st.session_state.user_api_key
-            
-            # If user_api_key was cleared, sync widget BEFORE creating it
-            # This is safe because we're modifying before widget instantiation
-            if st.session_state.user_api_key == "" and st.session_state.get(widget_key, "") != "":
-                st.session_state[widget_key] = ""
             
             # Create input field
             api_key_input = st.text_input(
@@ -131,25 +132,27 @@ def render_navigation_sidebar():
             
             col1, col2 = st.columns(2)
             
-            # Save button - separate form to avoid conflicts
+            # Save button
             with col1:
-                with st.form("save_api_key_form", clear_on_submit=False):
-                    save_clicked = st.form_submit_button(t(current_lang, "💾 Zapisz", "💾 Save"), use_container_width=True)
-                    if save_clicked:
-                        if api_key_input and api_key_input.strip():
-                            st.session_state.user_api_key = api_key_input.strip()
-                            st.success(t(current_lang, "Klucz API zapisany!", "API key saved!"))
-                            st.rerun()
-                        else:
-                            st.warning(t(current_lang, "Wprowadź klucz API", "Please enter an API key"))
+                if st.button(t(current_lang, "💾 Zapisz", "💾 Save"), use_container_width=True, key="save_api_key"):
+                    if api_key_input and api_key_input.strip():
+                        st.session_state.user_api_key = api_key_input.strip()
+                        st.session_state[widget_key] = api_key_input.strip()  # Sync widget
+                        st.success(t(current_lang, "Klucz API zapisany!", "API key saved!"))
+                        st.rerun()
+                    else:
+                        st.warning(t(current_lang, "Wprowadź klucz API", "Please enter an API key"))
             
-            # Remove button - separate form to avoid conflicts  
+            # Remove button - increment counter to force widget recreation
             with col2:
-                remove_clicked = st.button(t(current_lang, "🗑️ Usuń", "🗑️ Remove"), use_container_width=True, key="remove_api_key")
-                if remove_clicked:
-                    # Clear user_api_key (safe - not a widget key)
+                if st.button(t(current_lang, "🗑️ Usuń", "🗑️ Remove"), use_container_width=True, key="remove_api_key"):
+                    # Clear user_api_key
                     st.session_state.user_api_key = ""
-                    # Widget value will be synced on next render (lines 118-119)
+                    # Increment counter to force widget recreation with new key (empty value)
+                    st.session_state.api_key_widget_counter += 1
+                    # Delete old widget key
+                    if widget_key in st.session_state:
+                        del st.session_state[widget_key]
                     st.info(t(
                         current_lang,
                         "Klucz API usunięty. Funkcje AI będą niedostępne, dopóki nie podasz nowego klucza.",
