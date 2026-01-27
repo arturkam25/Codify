@@ -26,6 +26,10 @@ from app.services.personalities import get_personality, list_personalities, DEFA
 # Initialize database
 create_tables()
 
+# Initialize default admin user if no admin exists
+from app.data.users import initialize_default_admin
+initialize_default_admin()
+
 # Page configuration
 st.set_page_config(page_title="Codify", layout="wide", page_icon="💻")
 

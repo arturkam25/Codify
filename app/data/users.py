@@ -422,6 +422,41 @@ def is_first_admin(user_id):
     first_admin_id = get_first_admin_id()
     return first_admin_id is not None and user_id == first_admin_id
 
+def initialize_default_admin():
+    """Creates a default admin user if no admin exists in the database."""
+    if has_any_admin():
+        return  # Admin already exists, no need to create one
+    
+    # Create default admin user
+    default_username = "admin"
+    default_password = "admin123"  # User should change this after first login
+    
+    # Check if admin username already exists (but not as admin)
+    user = get_user_by_username(default_username)
+    if user:
+        # User exists but is not admin - make them admin
+        make_user_admin(user[0])
+        return
+    
+    # Create new admin user
+    success, message = create_user_secure(
+        username=default_username,
+        password=default_password,
+        is_admin=1,
+        disabled=0,
+        role="admin",
+        email=""
+    )
+    
+    if success:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Default admin user created: {default_username} / {default_password}")
+    else:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to create default admin: {message}")
+
 def delete_user(user_id):
     """Deletes a user record by ID. Prevents deletion of the first admin (super admin)."""
     # Check if trying to delete the first admin
