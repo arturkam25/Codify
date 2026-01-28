@@ -106,7 +106,7 @@ def render_navigation_sidebar():
                     "ℹ No API key set. AI features will be unavailable until you enter your own key."
                 ))
             
-            # API Key input - use query parameter to force complete widget reset
+            # API Key input - use query parameter tstreMo force complete widget reset
             widget_key = "api_key_input_widget"
             
             # Check if we need to reset (via query param or session state)
