@@ -147,7 +147,6 @@ def render_navigation_sidebar():
             if save_clicked:
                 if api_key_input and api_key_input.strip():
                     st.session_state.user_api_key = api_key_input.strip()
-                    st.session_state[widget_key] = api_key_input.strip()
                     st.success(t(current_lang, "Klucz API zapisany!", "API key saved!"))
                     st.rerun()
                 else:
