@@ -136,7 +136,6 @@ def render_navigation_sidebar():
                 )
                 
                 col1, col2 = st.columns(2)
-                
             
                 with col1:
                     save_clicked = st.form_submit_button(t(current_lang, "💾 Zapisz", "💾 Save"), use_container_width=True)
