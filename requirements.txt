@@ -6,4 +6,5 @@ openai>=1.0.0
 python-dotenv>=1.0.0
 Pillow>=10.0.0
 audio-recorder-streamlit>=0.0.8
+st-img-pastebutton>=0.0.1
 

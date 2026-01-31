@@ -20,6 +20,10 @@ from app.services.ai_service import (
     transcribe_audio, text_to_speech, calculate_cost, DEFAULT_MODEL
 )
 from audio_recorder_streamlit import audio_recorder
+try:
+    from st_img_pastebutton import paste as paste_image_from_clipboard
+except ImportError:
+    paste_image_from_clipboard = None
 from app.services.cost_tracking import log_cost, get_daily_costs, get_total_cost, get_conversation_cost
 from app.services.personalities import get_personality, list_personalities, DEFAULT_PERSONALITY
 
@@ -1948,9 +1952,10 @@ else:
         # Input method selection
         input_method = st.radio(
             t(lang, "Wybierz metodę wprowadzania kodu", "Select code input method"),
-            options=["paste_text", "upload"],
+            options=["paste_text", "screenshot", "upload"],
             format_func=lambda x: {
                 "paste_text": t(lang, "📝 Wklej kod jako tekst", "📝 Paste code as text"),
+                "screenshot": t(lang, "📸 Zrzut ekranu (Snipping Tool)", "📸 Screenshot (Snipping Tool)"),
                 "upload": t(lang, "📁 Prześlij plik ze zdjęciem", "📁 Upload image file")
             }.get(x, x),
             horizontal=False
@@ -1961,6 +1966,11 @@ else:
             st.info(t(lang, 
                 "💡 **Wskazówka:** Skopiuj kod tekstowy (Ctrl+C) i wklej tutaj (Ctrl+V).",
                 "💡 **Tip:** Copy text code (Ctrl+C) and paste here (Ctrl+V)."
+            ))
+        elif input_method == "screenshot":
+            st.info(t(lang,
+                "💡 **Wskazówka:** Zrób zrzut (Win+Shift+S), potem kliknij poniżej i wklej (Ctrl+V).",
+                "💡 **Tip:** Take a screenshot (Win+Shift+S), then click below and paste (Ctrl+V)."
             ))
 
         col1, col2 = st.columns(2)
@@ -2283,67 +2293,84 @@ Kod:
                     except Exception as e:
                         st.error(f"Błąd: {e}")
         
+        elif input_method == "screenshot":
+            # Snipping Tool: tylko wklejanie zrzutu (bez uploadera – upload jest w trzeciej opcji)
+            image_b64 = None
+            uploaded_file = None
+            if paste_image_from_clipboard is not None:
+                st.markdown(t(lang, "**Wklej zrzut ekranu:**", "**Paste screenshot:**"))
+                paste_label = t(lang, "Wklej zrzut (Win+Shift+S → kliknij i Ctrl+V)", "Paste screenshot (Win+Shift+S → click and Ctrl+V)")
+                image_data = paste_image_from_clipboard(label=paste_label, key="screenshot_paste")
+                if image_data is not None:
+                    try:
+                        header, encoded = image_data.split(",", 1)
+                        image_b64 = encoded
+                        binary_data = base64.b64decode(encoded)
+                        st.image(io.BytesIO(binary_data), caption=t(lang, "Wklejony zrzut ekranu", "Pasted screenshot"), use_container_width=True)
+                    except Exception:
+                        image_b64 = None
         else:
-            # Image upload option
+            # Upload: tylko przesyłanie pliku (bez wklejania – wklejanie jest w opcji Snipping Tool)
+            image_b64 = None
             uploaded_file = st.file_uploader(
                 t(lang, "Prześlij zdjęcie z kodem", "Upload image with code"),
                 type=['png', 'jpg', 'jpeg'],
                 help=t(lang,
-                    "Wybierz plik ze zdjęciem zawierającym kod do analizy.",
-                    "Select a file with an image containing code to analyze."
+                    "Wybierz plik ze zdjęciem zawierającym kod do analizy (np. zrzut ekranu zapisany jako plik).",
+                    "Select a file with an image containing code to analyze (e.g. screenshot saved as file)."
                 )
             )
+            if uploaded_file:
+                image_b64 = base64.b64encode(uploaded_file.read()).decode('utf-8')
+                uploaded_file.seek(0)
 
+        if (input_method == "screenshot" or input_method == "upload") and image_b64:
             if uploaded_file:
                 st.image(uploaded_file, caption=t(lang, "Przesłane zdjęcie", "Uploaded image"))
-                
-                if st.button(t(lang, "Konwertuj i wyjaśnij", "Convert and Explain"), use_container_width=True):
-                    with st.spinner(t(lang, "Przetwarzanie...", "Processing...")):
+            if st.button(t(lang, "Konwertuj i wyjaśnij", "Convert and Explain"), use_container_width=True):
+                with st.spinner(t(lang, "Przetwarzanie...", "Processing...")):
+                    try:
+                        # image_b64 already set above (from paste or file)
+                        # Get explanation
+                        # Convert voice_option to use_voice boolean for backward compatibility
+                        use_voice_bool = voice_option in ["read", "both"]
                         try:
-                            # Convert image to base64
-                            image_bytes = uploaded_file.read()
-                            image_b64 = base64.b64encode(image_bytes).decode('utf-8')
+                            result = explain_code_from_image(
+                                image_b64,
+                                level=translation_level,
+                                model=selected_model,
+                                use_voice=use_voice_bool,
+                                lang=lang
+                            )
+                        except ValueError:
+                            st.info(t(
+                                lang,
+                                "Aby skorzystać z wyjaśniania kodu ze zdjęcia, wprowadź swój klucz OpenAI API w panelu bocznym (sekcja „KLUCZ API”).",
+                                "To use explaining code from image, enter your OpenAI API key in the sidebar (\"API KEY\" section)."
+                            ))
+                            st.stop()
+                        
+                        # For advanced level, try to extract and display alternative code versions side by side
+                        if translation_level == "advanced":
+                            # Try to extract alternative code blocks from response
+                            import re
+                            explanation = result["explanation"]
                             
-                            # Get explanation
-                            # Convert voice_option to use_voice boolean for backward compatibility
-                            use_voice_bool = voice_option in ["read", "both"]
-                            try:
-                                result = explain_code_from_image(
-                                    image_b64,
-                                    level=translation_level,
-                                    model=selected_model,
-                                    use_voice=use_voice_bool,
-                                    lang=lang
-                                )
-                            except ValueError:
-                                st.info(t(
-                                    lang,
-                                    "Aby skorzystać z wyjaśniania kodu ze zdjęcia, wprowadź swój klucz OpenAI API w panelu bocznym (sekcja „KLUCZ API”).",
-                                    "To use explaining code from image, enter your OpenAI API key in the sidebar (\"API KEY\" section)."
-                                ))
-                                st.stop()
+                            # Look for code blocks with "Alternative" or "Alternatywa" labels
+                            alt_pattern = r'(?:Alternative|Alternatywa)\s*\d+[:]?\s*```(\w+)?\n(.*?)```'
+                            alternatives = re.findall(alt_pattern, explanation, re.DOTALL)
                             
-                            # For advanced level, try to extract and display alternative code versions side by side
-                            if translation_level == "advanced":
-                                # Try to extract alternative code blocks from response
-                                import re
-                                explanation = result["explanation"]
+                            if alternatives:
+                                st.subheader(t(lang, "Porównanie wersji kodu", "Code Versions Comparison"))
                                 
-                                # Look for code blocks with "Alternative" or "Alternatywa" labels
-                                alt_pattern = r'(?:Alternative|Alternatywa)\s*\d+[:]?\s*```(\w+)?\n(.*?)```'
-                                alternatives = re.findall(alt_pattern, explanation, re.DOTALL)
+                                # Always display in vertical layout: minimum 2 alternatives
+                                # Display at least 2 alternatives (or all if less than 2)
+                                num_to_show = max(2, len(alternatives))
+                                # Display at least 2 alternatives side by side (horizontal layout)
+                                alternatives_to_show = alternatives[:num_to_show]
                                 
-                                if alternatives:
-                                    st.subheader(t(lang, "Porównanie wersji kodu", "Code Versions Comparison"))
-                                    
-                                    # Always display in vertical layout: minimum 2 alternatives
-                                    # Display at least 2 alternatives (or all if less than 2)
-                                    num_to_show = max(2, len(alternatives))
-                                    # Display at least 2 alternatives side by side (horizontal layout)
-                                    alternatives_to_show = alternatives[:num_to_show]
-                                    
-                                    # Force horizontal layout using HTML/CSS
-                                    st.markdown("""
+                                # Force horizontal layout using HTML/CSS
+                                st.markdown("""
                                         <style>
                                         .alternatives-container {
                                             display: flex !important;
@@ -2363,36 +2390,36 @@ Kod:
                                             }
                                         }
                                         </style>
-                                    """, unsafe_allow_html=True)
-                                    
-                                    # Create HTML structure for alternatives
-                                    alternatives_html = '<div class="alternatives-container">'
-                                    
-                                    for idx, (lang_type, alt_code) in enumerate(alternatives_to_show):
-                                        # Escape HTML in code
-                                        import html
-                                        escaped_code = html.escape(alt_code.strip())
-                                        code_lang = lang_type.strip() if lang_type else "python"
-                                        
-                                        alternatives_html += f'''
-                                        <div class="alternative-item">
-                                            <h4 style="color: #D4AF37; margin-bottom: 10px;">{t(lang, f'Alternatywa {idx+1}', f'Alternative {idx+1}')}</h4>
-                                            <pre style="background: #1e1e1e; padding: 15px; border-radius: 5px; overflow-x: auto; color: #d4d4d4; font-family: 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word;"><code class="language-{code_lang}">{escaped_code}</code></pre>
-                                        </div>
-                                        '''
-                                    
-                                    alternatives_html += '</div>'
-                                    st.markdown(alternatives_html, unsafe_allow_html=True)
-                                    
-                                    st.markdown("---")
-                                    st.subheader(t(lang, "Szczegółowa analiza", "Detailed Analysis"))
-                                else:
-                                    st.subheader(t(lang, "Wyjaśnienie kodu", "Code Explanation"))
+                                """, unsafe_allow_html=True)
                                 
-                                st.markdown(explanation)
+                                # Create HTML structure for alternatives
+                                alternatives_html = '<div class="alternatives-container">'
+                                
+                                for idx, (lang_type, alt_code) in enumerate(alternatives_to_show):
+                                    # Escape HTML in code
+                                    import html
+                                    escaped_code = html.escape(alt_code.strip())
+                                    code_lang = lang_type.strip() if lang_type else "python"
+                                    
+                                    alternatives_html += f'''
+                                    <div class="alternative-item">
+                                        <h4 style="color: #D4AF37; margin-bottom: 10px;">{t(lang, f'Alternatywa {idx+1}', f'Alternative {idx+1}')}</h4>
+                                        <pre style="background: #1e1e1e; padding: 15px; border-radius: 5px; overflow-x: auto; color: #d4d4d4; font-family: 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word;"><code class="language-{code_lang}">{escaped_code}</code></pre>
+                                    </div>
+                                    '''
+                                
+                                alternatives_html += '</div>'
+                                st.markdown(alternatives_html, unsafe_allow_html=True)
+                                
+                                st.markdown("---")
+                                st.subheader(t(lang, "Szczegółowa analiza", "Detailed Analysis"))
                             else:
                                 st.subheader(t(lang, "Wyjaśnienie kodu", "Code Explanation"))
-                                st.markdown(result["explanation"])
+                            
+                            st.markdown(explanation)
+                        else:
+                            st.subheader(t(lang, "Wyjaśnienie kodu", "Code Explanation"))
+                            st.markdown(result["explanation"])
                             
                             # Calculate and log cost
                             cost = calculate_cost(result["usage"], model=selected_model)
@@ -2475,9 +2502,9 @@ Na podstawie tego wyjaśnienia:
                                     st.error(f"{t(lang, 'Błąd generowania audio:', 'Audio generation error:')} {e}")
                             
                             st.success(t(lang, f"Koszt: ${cost:.4f}", f"Cost: ${cost:.4f}"))
-                            
-                        except Exception as e:
-                            st.error(f"Błąd: {e}")
+                    
+                    except Exception as e:
+                        st.error(f"Błąd: {e}")
 
     # ==========================================================================
     # TEXT TRANSLATION
