@@ -101,6 +101,8 @@ if "show_forgot_password" not in st.session_state:
     st.session_state.show_forgot_password = False
 if "user_api_key" not in st.session_state:
     st.session_state.user_api_key = ""
+if "theme" not in st.session_state:
+    st.session_state.theme = "dark"  # "light" | "dark"
 
 # Get routing
 qp = get_qp()
@@ -576,7 +578,7 @@ elif page == "register":
             transform: translateY(-2px) !important;
         }
         
-        /* Expander */
+        /* Expander – ciemny motyw rejestracji */
         .streamlit-expanderHeader {
             background: rgba(14, 17, 23, 0.6) !important;
             border: 1px solid rgba(212, 175, 55, 0.3) !important;
@@ -602,6 +604,36 @@ elif page == "register":
         }
         </style>
     """, unsafe_allow_html=True)
+    # W trybie jasnym: expander „Wymagania dotyczące hasła” – całe okno jasne (też zewnętrzny kontener)
+    if st.session_state.get("theme", "light") == "light":
+        st.markdown("""
+        <style>
+        /* Zewnętrzne pole (kontener wokół expandera) – jasne tło i szara obramówka cały czas */
+        div:has(> [data-testid="stExpander"]),
+        div:has(> div > [data-testid="stExpander"]) {
+            background: #f9fafb !important;
+            border: 1px solid #9ca3af !important;
+            border-radius: 8px !important;
+        }
+        .streamlit-expanderHeader, .streamlit-expanderHeader * {
+            background: #f3f4f6 !important;
+            color: #111827 !important;
+            border-color: #9ca3af !important;
+        }
+        [data-testid="stExpander"],
+        [data-testid="stExpander"] > div,
+        [data-testid="stExpander"] div {
+            background: #f9fafb !important;
+            border-color: #9ca3af !important;
+        }
+        [data-testid="stExpander"] [data-testid="stMarkdownContainer"],
+        [data-testid="stExpander"] .stMarkdown, [data-testid="stExpander"] p,
+        [data-testid="stExpander"] li, [data-testid="stExpander"] [data-testid="stMarkdownContainer"] * {
+            color: #111827 !important;
+            background: transparent !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
@@ -879,10 +911,12 @@ else:
     user = st.session_state.user
     hide_default_streamlit_menu()
     
-    # Global CSS styling with gold/yellow theme
-    st.markdown("""
+    # Global CSS styling – dark or light theme (gold accents kept)
+    theme = st.session_state.get("theme", "light")
+    if theme == "dark":
+        st.markdown("""
         <style>
-        /* Global Gold/Yellow Theme */
+        /* Global Gold/Yellow Theme – Dark */
         :root {
             --gold-primary: #D4AF37;
             --gold-light: rgba(212, 175, 55, 0.15);
@@ -891,278 +925,184 @@ else:
             --bg-dark: #0e1117;
             --bg-card: rgba(0, 0, 0, 0.4);
         }
-        
-        /* Main App Background */
-        .stApp {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f1419 100%);
-        }
-        
-        /* Sidebar Styling */
-        [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, rgba(14, 17, 23, 0.95) 0%, rgba(10, 13, 18, 0.98) 100%);
-            border-right: 2px solid var(--gold-medium);
-        }
-        
-        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
-            color: var(--gold-primary) !important;
-            font-weight: 800;
-            text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
-        }
-        
-        /* Buttons - Custom Gold Theme with Premium Look */
-        .stButton > button {
-            background: linear-gradient(135deg, #D4AF37 0%, #B8941F 50%, #9A7A1A 100%) !important;
-            color: #0b0b0b !important;
-            border: none !important;
-            border-radius: 25px !important;
-            font-weight: 800 !important;
-            font-size: 16px !important;
-            padding: 14px 28px !important;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-            box-shadow: 0 8px 20px rgba(212, 175, 55, 0.4), 
-                        0 4px 8px rgba(0, 0, 0, 0.3),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-            position: relative !important;
-            overflow: hidden !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.5px !important;
-            cursor: pointer !important;
-        }
-        
-        .stButton > button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            transition: left 0.5s;
-        }
-        
-        .stButton > button:hover::before {
-            left: 100%;
-        }
-        
-        .stButton > button:hover {
-            background: linear-gradient(135deg, #E5C158 0%, #D4AF37 50%, #B8941F 100%) !important;
-            box-shadow: 0 12px 30px rgba(212, 175, 55, 0.6), 
-                        0 6px 12px rgba(0, 0, 0, 0.4),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-            transform: translateY(-3px) scale(1.02) !important;
-        }
-        
-        .stButton > button:active {
-            transform: translateY(-1px) scale(0.98) !important;
-            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4), 
-                        0 2px 4px rgba(0, 0, 0, 0.3) !important;
-        }
-        
-        /* Secondary/Back buttons */
-        .stButton > button[kind="secondary"],
-        button[kind="secondary"] {
-            background: rgba(14, 17, 23, 0.9) !important;
-            color: #D4AF37 !important;
-            border: 2px solid rgba(212, 175, 55, 0.5) !important;
-            border-radius: 25px !important;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2), 
-                        inset 0 1px 0 rgba(212, 175, 55, 0.1) !important;
-        }
-        
-        .stButton > button[kind="secondary"]:hover,
-        button[kind="secondary"]:hover {
-            background: rgba(212, 175, 55, 0.15) !important;
-            border-color: #D4AF37 !important;
-            color: #E5C158 !important;
-            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4), 
-                        inset 0 1px 0 rgba(212, 175, 55, 0.2) !important;
-            transform: translateY(-2px) !important;
-        }
-        
-        /* Text Inputs */
-        .stTextInput > div > div > input,
-        .stTextArea > div > div > textarea {
-            background: rgba(14, 17, 23, 0.8);
-            border: 2px solid var(--gold-medium);
-            border-radius: 8px;
-            color: #ffffff;
-            transition: all 0.3s ease;
-        }
-        
-        .stTextInput > div > div > input:focus,
-        .stTextArea > div > div > textarea:focus {
-            border-color: var(--gold-primary);
-            box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
-        }
-        
-        /* Radio Buttons */
-        .stRadio > div {
-            background: rgba(14, 17, 23, 0.6);
-            border-radius: 10px;
-            padding: 10px;
-        }
-        
-        .stRadio > div > label {
-            color: #ffffff !important;
-        }
-        
-        .stRadio > div > label > div:first-child {
-            border-color: var(--gold-primary) !important;
-        }
-        
-        .stRadio > div > label[data-baseweb="radio"] > div:first-child {
-            border-color: var(--gold-primary) !important;
-        }
-        
-        /* Checkboxes */
-        .stCheckbox > label {
-            color: #ffffff !important;
-        }
-        
-        .stCheckbox > label > div:first-child {
-            border-color: var(--gold-primary) !important;
-        }
-        
-        /* File Uploader */
-        .stFileUploader > div {
-            background: rgba(14, 17, 23, 0.6);
-            border: 2px dashed var(--gold-medium);
-            border-radius: 10px;
-        }
-        
-        /* Metrics */
-        [data-testid="stMetricValue"] {
-            color: var(--gold-primary) !important;
-            font-weight: 800;
-        }
-        
-        [data-testid="stMetricLabel"] {
-            color: rgba(255, 255, 255, 0.8) !important;
-        }
-        
-        /* Titles and Headers */
-        h1, h2, h3 {
-            color: var(--gold-primary) !important;
-            text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
-        }
-        
-        /* Info, Success, Warning, Error boxes */
-        .stInfo {
-            background: var(--gold-light);
-            border-left: 4px solid var(--gold-primary);
-        }
-        
-        .stSuccess {
-            background: rgba(76, 175, 80, 0.1);
-            border-left: 4px solid #4CAF50;
-        }
-        
-        .stWarning {
-            background: rgba(255, 193, 7, 0.1);
-            border-left: 4px solid #FFC107;
-        }
-        
-        .stError {
-            background: rgba(244, 67, 54, 0.1);
-            border-left: 4px solid #F44336;
-        }
-        
-        /* Code blocks */
-        .stCodeBlock {
-            background: rgba(14, 17, 23, 0.9);
-            border: 1px solid var(--gold-medium);
-            border-radius: 8px;
-        }
-        
-        /* Expander */
-        .streamlit-expanderHeader {
-            background: rgba(14, 17, 23, 0.6);
-            border: 1px solid var(--gold-medium);
-            border-radius: 8px;
-            color: var(--gold-primary) !important;
-        }
-        
-        /* Chat messages */
-        [data-testid="stChatMessage"] {
-            background: rgba(14, 17, 23, 0.6);
-            border-left: 4px solid var(--gold-primary);
-            border-radius: 8px;
-            padding: 10px;
-        }
-        
-        /* Selectbox */
-        .stSelectbox > div > div {
-            background: rgba(14, 17, 23, 0.8);
-            border: 2px solid var(--gold-medium);
-            border-radius: 8px;
-        }
-        
-        /* Tabs */
-        .stTabs [data-baseweb="tab-list"] {
-            background: rgba(14, 17, 23, 0.6);
-            border-bottom: 2px solid var(--gold-medium);
-        }
-        
-        .stTabs [data-baseweb="tab"] {
-            color: rgba(255, 255, 255, 0.7) !important;
-        }
-        
-        .stTabs [aria-selected="true"] {
-            color: var(--gold-primary) !important;
-            border-bottom: 3px solid var(--gold-primary);
-        }
-        
-        /* Dataframe */
-        .stDataFrame {
-            background: rgba(14, 17, 23, 0.6);
-            border: 1px solid var(--gold-medium);
-            border-radius: 8px;
-        }
-        
-        /* Horizontal rule */
-        hr {
-            border-color: var(--gold-medium);
-        }
-        
-        /* Markdown links */
-        a {
-            color: var(--gold-primary) !important;
-        }
-        
-        a:hover {
-            color: #E5C158 !important;
-        }
-        
-        /* Spinner */
-        .stSpinner > div {
-            border-color: var(--gold-primary) transparent transparent transparent;
-        }
-        
-        /* Conversation buttons - special style to ensure text is visible */
-        button[key^="conv_"] {
-            background: rgba(14, 17, 23, 0.8) !important;
-            color: #D4AF37 !important;
-            border: 2px solid rgba(212, 175, 55, 0.5) !important;
-            text-transform: none !important;
-            font-weight: 600 !important;
-            text-align: left !important;
-            padding-left: 15px !important;
-        }
-        
-        button[key^="conv_"]:hover {
-            background: rgba(212, 175, 55, 0.15) !important;
-            border-color: #D4AF37 !important;
-            color: #E5C158 !important;
-        }
-        
-        button[key^="conv_"][disabled] {
-            background: rgba(212, 175, 55, 0.2) !important;
-            border-color: #D4AF37 !important;
-            color: #D4AF37 !important;
-            opacity: 1 !important;
-        }
+        .stApp { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f1419 100%); }
+        [data-testid="stSidebar"] { background: linear-gradient(180deg, rgba(14, 17, 23, 0.95) 0%, rgba(10, 13, 18, 0.98) 100%); border-right: 2px solid var(--gold-medium); }
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 { color: var(--gold-primary) !important; font-weight: 800; text-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+        /* Przyciski – wszędzie ten sam 3D: cień pod spodem, hover uniesienie, active wcięcie (główna treść + sidebar) */
+        .stButton > button, [data-testid="stSidebar"] .stButton > button, [data-testid="stSidebar"] .stForm button, [data-testid="stSidebar"] form button, [data-testid="stSidebar"] button[type="submit"] { background: linear-gradient(180deg, #D4AF37 0%, #B8941F 50%, #9A7A1A 100%) !important; color: #0b0b0b !important; border: none !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 14px !important; padding: 10px 20px !important; box-shadow: 0 4px 0 #9A7A1A, 0 6px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2) !important; transition: all 0.15s ease !important; cursor: pointer !important; }
+        .stButton > button:hover, [data-testid="stSidebar"] .stButton > button:hover, [data-testid="stSidebar"] .stForm button:hover, [data-testid="stSidebar"] form button:hover { background: linear-gradient(180deg, #E5C158 0%, #D4AF37 100%) !important; color: #0b0b0b !important; box-shadow: 0 4px 0 #B8941F, 0 8px 16px rgba(212,175,55,0.4), inset 0 1px 0 rgba(255,255,255,0.3) !important; transform: translateY(-1px); }
+        .stButton > button:active, [data-testid="stSidebar"] .stButton > button:active, [data-testid="stSidebar"] .stForm button:active { transform: translateY(2px) !important; box-shadow: 0 2px 0 #9A7A1A, 0 2px 6px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.2) !important; }
+        .stButton > button[kind="secondary"], button[kind="secondary"] { background: linear-gradient(180deg, rgba(14,17,23,0.9) 0%, rgba(10,13,18,0.95) 100%) !important; color: #D4AF37 !important; border: 2px solid var(--gold-medium) !important; border-radius: 8px !important; box-shadow: 0 3px 0 rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(212,175,55,0.1) !important; }
+        .stButton > button[kind="secondary"]:hover, button[kind="secondary"]:hover { background: rgba(212,175,55,0.15) !important; border-color: #D4AF37 !important; color: #E5C158 !important; box-shadow: 0 3px 0 rgba(0,0,0,0.3), 0 6px 12px rgba(212,175,55,0.3), inset 0 1px 0 rgba(255,255,255,0.05) !important; transform: translateY(-1px); }
+        .stTextInput > div > div > input, .stTextArea > div > div > textarea { background: rgba(14, 17, 23, 0.8) !important; border: 2px solid var(--gold-medium); border-radius: 8px; color: #ffffff !important; transition: all 0.3s ease; }
+        .stTextInput > div > div > input::placeholder, .stTextArea > div > div > textarea::placeholder { color: rgba(255, 255, 255, 0.6) !important; }
+        .stTextInput > div > div > input:focus, .stTextArea > div > div > textarea:focus { border-color: var(--gold-primary); box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+        .stTextInput label, .stTextArea label { color: #ffffff !important; }
+        /* Radio (tryb ciemny) – ten sam suwak co w jasnym: OFF = kropka lewo (ciemna), ON = kropka prawo (jasna, widoczna)
+           BACKUP na cofnięcie: OFF right:82px, ON right:44px, pill 76x34px, label padding-right:108px, min-width .main:320px */
+        .stRadio > div { background: rgba(14, 17, 23, 0.6); border-radius: 10px; padding: 10px 12px; border: 1px solid var(--gold-medium); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); gap: 6px; display: flex; flex-direction: column; }
+        .main .stRadio > div { width: 340px; max-width: 100%; min-width: 300px; }
+        .stRadio > div > label { position: relative !important; color: #ffffff !important; padding: 10px 14px 10px 14px !important; padding-right: 108px !important; border-radius: 8px !important; border: 1px solid var(--gold-medium) !important; margin: 0 !important; transition: all 0.2s ease !important; min-height: 52px !important; display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; cursor: pointer !important; background: linear-gradient(180deg, rgba(30,35,45,0.9) 0%, rgba(20,25,32,0.95) 100%) !important; box-shadow: 0 2px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05) !important; white-space: nowrap !important; }
+        .stRadio > div > label:hover { background: linear-gradient(180deg, rgba(40,45,55,0.9) 0%, rgba(30,35,45,0.95) 100%) !important; border-color: var(--gold-primary) !important; box-shadow: 0 3px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08) !important; }
+        .stRadio > div > label[aria-checked="true"] { border-color: var(--gold-primary) !important; box-shadow: 0 2px 6px rgba(212,175,55,0.3), inset 0 1px 0 rgba(255,255,255,0.1) !important; }
+        .stRadio > div > label::after { content: 'OFF' !important; position: absolute !important; right: 82px !important; top: 50% !important; transform: translateY(-50%) !important; font-size: 11px !important; font-weight: 800 !important; color: rgba(255,255,255,0.5) !important; letter-spacing: 0.5px !important; pointer-events: none !important; white-space: nowrap !important; }
+        .stRadio > div > label[aria-checked="true"]::after, .stRadio > div > label:has(input:checked)::after { content: 'ON' !important; right: 44px !important; color: #D4AF37 !important; text-shadow: 0 0 8px rgba(212,175,55,0.8) !important; }
+        /* Suwak: tor ciemny; OFF = kropka lewo, ON = kropka prawo – ujednolicony rozmiar */
+        .stRadio > div > label > div:first-child, .stRadio > div > label[data-baseweb="radio"] > div:first-child { order: 2; margin-left: 16px !important; margin-right: 0 !important; width: 76px !important; height: 34px !important; min-width: 76px !important; min-height: 34px !important; max-width: 76px !important; border-radius: 17px !important; border: 2px solid var(--gold-medium) !important; background: rgba(20,25,32,0.9) !important; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4) !important; flex-shrink: 0; position: relative !important; }
+        .stRadio > div > label > div:first-child::after, .stRadio > div > label[data-baseweb="radio"] > div:first-child::after { content: '' !important; position: absolute !important; width: 24px !important; height: 24px !important; border-radius: 50% !important; top: 3px !important; left: 3px !important; right: auto !important; background: #4b5563 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; transition: left 0.2s ease, right 0.2s ease, background 0.2s ease !important; z-index: 1 !important; }
+        .stRadio > div > label[data-baseweb="radio"][aria-checked="true"] > div:first-child::after, .stRadio > div > label[aria-checked="true"] > div:first-child::after, .stRadio > div > label:has(input:checked) > div:first-child::after { left: auto !important; right: 3px !important; background: #D4AF37 !important; box-shadow: 0 0 8px rgba(212,175,55,0.6), 0 1px 3px rgba(0,0,0,0.3) !important; }
+        .stRadio > div > label[data-baseweb="radio"][aria-checked="true"] > div:first-child, .stRadio > div > label[aria-checked="true"] > div:first-child { border-color: var(--gold-primary) !important; background: rgba(212,175,55,0.15) !important; }
+        /* Checkbox – ten sam rozmiar i 3D co jasny */
+        .stCheckbox > label { color: #ffffff !important; padding: 8px 0 !important; min-height: 44px !important; display: inline-flex !important; align-items: center !important; cursor: pointer !important; }
+        .stCheckbox > label > div:first-child { width: 22px !important; height: 22px !important; min-width: 22px !important; min-height: 22px !important; border-radius: 6px !important; border: 2px solid var(--gold-medium) !important; margin-right: 12px !important; box-shadow: inset 0 1px 2px rgba(0,0,0,0.2) !important; }
+        .stCheckbox > label[data-baseweb="checkbox"][aria-checked="true"] > div:first-child, .stCheckbox > label:has(input:checked) > div:first-child { background: linear-gradient(180deg, #D4AF37 0%, #B8941F 100%) !important; border-color: var(--gold-primary) !important; box-shadow: 0 1px 2px rgba(0,0,0,0.3), inset 0 0 0 2px rgba(255,255,255,0.2), inset 0 1px 0 rgba(255,255,255,0.15) !important; }
+        .stFileUploader > div { background: rgba(14, 17, 23, 0.6); border: 2px dashed var(--gold-medium); border-radius: 10px; }
+        [data-testid="stMetricValue"] { color: var(--gold-primary) !important; font-weight: 800; }
+        [data-testid="stMetricLabel"] { color: rgba(255, 255, 255, 0.8) !important; }
+        h1, h2, h3 { color: var(--gold-primary) !important; text-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
+        .stInfo { background: var(--gold-light); border-left: 4px solid var(--gold-primary); }
+        .stSuccess { background: rgba(76, 175, 80, 0.1); border-left: 4px solid #4CAF50; }
+        .stWarning { background: rgba(255, 193, 7, 0.1); border-left: 4px solid #FFC107; }
+        .stError { background: rgba(244, 67, 54, 0.1); border-left: 4px solid #F44336; }
+        .stCodeBlock { background: rgba(14, 17, 23, 0.9); border: 1px solid var(--gold-medium); border-radius: 8px; }
+        .streamlit-expanderHeader { background: rgba(14, 17, 23, 0.6); border: 1px solid var(--gold-medium); border-radius: 8px; color: var(--gold-primary) !important; }
+        [data-testid="stChatMessage"] { background: rgba(14, 17, 23, 0.6); border-left: 4px solid var(--gold-primary); border-radius: 8px; padding: 10px; }
+        /* Selectbox – jak w oryginale (initial): tylko tło i obramowanie, bez stylu na potomkach – tekst domyślnie biały */
+        .stSelectbox > div > div { background: rgba(14, 17, 23, 0.8); border: 2px solid var(--gold-medium); border-radius: 8px; }
+        .stSelectbox > div > div:hover, .stSelectbox > div > div:focus-within { border-color: var(--gold-primary); }
+        .stTabs [data-baseweb="tab-list"] { background: rgba(14, 17, 23, 0.6); border-bottom: 2px solid var(--gold-medium); }
+        .stTabs [data-baseweb="tab"] { color: rgba(255, 255, 255, 0.7) !important; }
+        .stTabs [aria-selected="true"] { color: var(--gold-primary) !important; border-bottom: 3px solid var(--gold-primary); }
+        .stDataFrame { background: rgba(14, 17, 23, 0.6); border: 1px solid var(--gold-medium); border-radius: 8px; }
+        hr { border-color: var(--gold-medium); }
+        a { color: var(--gold-primary) !important; }
+        a:hover { color: #E5C158 !important; }
+        .stSpinner > div { border-color: var(--gold-primary) transparent transparent transparent; }
+        button[key^="conv_"] { background: linear-gradient(180deg, rgba(30,35,45,0.95) 0%, rgba(20,25,32,0.98) 100%) !important; color: #D4AF37 !important; border: 2px solid var(--gold-medium) !important; border-radius: 8px !important; text-transform: none !important; font-weight: 600 !important; text-align: left !important; padding: 10px 15px !important; box-shadow: 0 3px 0 rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(212,175,55,0.1) !important; transition: all 0.15s ease !important; }
+        button[key^="conv_"]:hover { background: rgba(212, 175, 55, 0.15) !important; border-color: #D4AF37 !important; color: #E5C158 !important; box-shadow: 0 3px 0 rgba(0,0,0,0.3), 0 6px 12px rgba(212,175,55,0.2), inset 0 1px 0 rgba(255,255,255,0.05) !important; transform: translateY(-1px); }
+        button[key^="conv_"]:active { transform: translateY(2px) !important; box-shadow: 0 1px 0 rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.2), inset 0 2px 4px rgba(0,0,0,0.2) !important; }
+        button[key^="conv_"][disabled] { background: rgba(212, 175, 55, 0.2) !important; border-color: #D4AF37 !important; color: #D4AF37 !important; opacity: 1 !important; box-shadow: 0 2px 0 rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05) !important; }
+        /* Hint "Naciśnij Ctrl+Enter" – ten sam złoty 3D co Zapisz/Usuń */
+        .ctrl-enter-hint { background: linear-gradient(180deg, #D4AF37 0%, #B8941F 50%, #9A7A1A 100%) !important; color: #0b0b0b !important; border: none !important; border-radius: 8px !important; box-shadow: 0 4px 0 #9A7A1A, 0 6px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2) !important; }
+        /* Pole chatu – podniesione nad dolny czarny pasek */
+        .stChatInputContainer { bottom: 28px !important; }
         </style>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <style>
+        /* Tryb jasny – przyciemnione szarości, bez zlewania w biel; baner powitalny w niebieskim */
+        :root {
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --border: #d1d5db;
+            --border-strong: #9ca3af;
+            --bg: #e5e7eb;
+            --bg-subtle: #d1d5db;
+            --bg-hover: #e5e7eb;
+            --bg-card: #f3f4f6;
+        }
+        .stApp { background: var(--bg) !important; }
+        h1, h2, h3, p, span, label, a { text-shadow: none !important; }
+        [data-testid="stSidebar"] { background: var(--bg-card) !important; border-right: 1px solid var(--border) !important; }
+        [data-testid="stSidebar"] * { color: var(--text-primary) !important; text-shadow: none !important; }
+        [data-testid="stSidebar"] label, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span { color: var(--text-primary) !important; }
+        [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"], [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] * { color: inherit !important; }
+        [data-testid="stSidebar"] .stSuccess, [data-testid="stSidebar"] .stSuccess * { color: #1e40af !important; background: #dbeafe !important; background-color: #dbeafe !important; border-left-color: #2563eb !important; }
+        [data-testid="stSidebar"] .stInfo, [data-testid="stSidebar"] .stInfo * { color: var(--text-primary) !important; }
+        [data-testid="stSidebar"] .stWarning, [data-testid="stSidebar"] .stWarning * { color: #92400e !important; }
+        [data-testid="stSidebar"] .stError, [data-testid="stSidebar"] .stError * { color: #b91c1c !important; }
+        [data-testid="stSidebar"] input { color: var(--text-primary) !important; background: var(--bg) !important; }
+        [data-testid="stSidebar"] hr { border-color: var(--border) !important; }
+        .stButton > button, [data-testid="stSidebar"] .stButton > button, [data-testid="stSidebar"] .stForm button, [data-testid="stSidebar"] form button, [data-testid="stSidebar"] button[type="submit"] { color: #111827 !important; background: linear-gradient(180deg, #e5e7eb 0%, #d1d5db 50%, #9ca3af 100%) !important; font-weight: 600 !important; border: 1px solid #9ca3af !important; border-radius: 8px !important; font-size: 14px !important; padding: 10px 20px !important; box-shadow: 0 2px 0 #9ca3af, 0 4px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8) !important; transition: all 0.15s ease !important; }
+        .stButton > button:hover, [data-testid="stSidebar"] .stButton > button:hover, [data-testid="stSidebar"] .stForm button:hover, [data-testid="stSidebar"] form button:hover { background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%) !important; color: #111827 !important; border-color: #6b7280 !important; box-shadow: 0 2px 0 #9ca3af, 0 6px 12px rgba(0,0,0,0.1), inset 0 1px 0 #fff !important; transform: translateY(-1px); }
+        .stButton > button:active, [data-testid="stSidebar"] .stButton > button:active, [data-testid="stSidebar"] .stForm button:active { transform: translateY(2px) !important; box-shadow: 0 1px 0 #9ca3af, 0 2px 6px rgba(0,0,0,0.1), inset 0 2px 4px rgba(0,0,0,0.08) !important; }
+        .stButton > button[kind="secondary"], button[kind="secondary"] { background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%) !important; color: var(--text-primary) !important; border: 1px solid var(--border-strong) !important; border-radius: 8px !important; box-shadow: 0 2px 0 #d1d5db, 0 4px 8px rgba(0,0,0,0.08), inset 0 1px 0 #fff !important; }
+        .stButton > button[kind="secondary"]:hover, button[kind="secondary"]:hover { background: linear-gradient(180deg, #fff 0%, #f3f4f6 100%) !important; box-shadow: 0 2px 0 #d1d5db, 0 6px 12px rgba(0,0,0,0.1), inset 0 1px 0 #fff !important; transform: translateY(-1px); }
+        .main .block-container { color: var(--text-primary); background: #f9fafb !important; }
+        .main .element-container { background: #f9fafb !important; color: #111827 !important; }
+        p, span, li, div[data-testid="stMarkdownContainer"], div[data-testid="stMarkdownContainer"] * { color: var(--text-primary) !important; text-shadow: none !important; }
+        .main .element-container [data-testid="stMarkdownContainer"], .main [data-testid="stMarkdownContainer"] { background: #f9fafb !important; color: #111827 !important; }
+        .main .element-container [data-testid="stMarkdownContainer"] * { color: #111827 !important; background: transparent !important; }
+        .main .stMarkdown, .main div.stMarkdown { background: #f9fafb !important; color: #111827 !important; }
+        .main .stMarkdown *, .main div.stMarkdown * { color: #111827 !important; background: transparent !important; }
+        .main div:has(> [data-testid="stMarkdownContainer"]) { background: #f9fafb !important; color: #111827 !important; }
+        .main div:has(> [data-testid="stMarkdownContainer"]) * { color: #111827 !important; background: transparent !important; }
+        .main .element-container > div { background: #f9fafb !important; }
+        .main pre, .main code, .main .stCodeBlock { background: #f3f4f6 !important; color: #111827 !important; border: 1px solid #d1d5db !important; }
+        [data-testid="stCodeBlock"], .main [data-testid="stCodeBlock"], section[data-testid="main"] [data-testid="stCodeBlock"] { background: #f3f4f6 !important; color: #111827 !important; border: 1px solid #d1d5db !important; }
+        [data-testid="stCodeBlock"] pre, [data-testid="stCodeBlock"] code, [data-testid="stCodeBlock"] * { background: #f3f4f6 !important; color: #111827 !important; border-color: #d1d5db !important; }
+        section[data-testid="main"] .block-container div:has(pre), section[data-testid="main"] .block-container div:has([data-testid="stCodeBlock"]) { background: #f9fafb !important; }
+        section[data-testid="main"] .block-container div:has(pre) pre, section[data-testid="main"] .block-container div:has(pre) code { background: #f3f4f6 !important; color: #111827 !important; }
+        .main [data-testid="stVerticalBlock"] { background: transparent !important; }
+        h1, h2, h3 { color: var(--text-primary) !important; font-weight: 700; text-shadow: none !important; }
+        [data-testid="stMetricValue"] { color: var(--text-primary) !important; font-weight: 700; }
+        [data-testid="stMetricLabel"] { color: var(--text-secondary) !important; }
+        .stTextInput > div > div > input, .stTextArea > div > div > textarea { background: var(--bg-card) !important; border: 1px solid var(--border); border-radius: 8px; color: #111827 !important; }
+        .stTextInput > div > div > input::placeholder, .stTextArea > div > div > textarea::placeholder { color: #6b7280 !important; }
+        .stTextInput > div > div > input:focus, .stTextArea > div > div > textarea:focus { border-color: #9ca3af; box-shadow: 0 0 0 2px rgba(0,0,0,0.05); }
+        .stTextInput label, .stTextArea label { color: var(--text-primary) !important; }
+        .stNumberInput label, .stNumberInput [data-testid="stMarkdownContainer"], [data-testid="stNumberInput"] label, [data-testid="stNumberInput"] [data-testid="stMarkdownContainer"] { color: #111827 !important; }
+        .stNumberInput input, .stNumberInput > div > div input, [data-testid="stNumberInput"] input, [data-testid="stNumberInput"] input[type="number"] { background: #f9fafb !important; color: #111827 !important; border: 1px solid #d1d5db !important; }
+        .stNumberInput > div > div, [data-testid="stNumberInput"] > div > div { background: #f9fafb !important; border: 1px solid #d1d5db !important; border-radius: 8px !important; }
+        .stRadio > div { background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%); border-radius: 10px; padding: 10px 12px; border: 1px solid var(--border); box-shadow: inset 0 2px 4px rgba(0,0,0,0.04); gap: 6px; display: flex; flex-direction: column; }
+        .main .stRadio > div { width: 340px; max-width: 100%; min-width: 300px; }
+        .stRadio > div > label { position: relative !important; color: var(--text-primary) !important; padding: 10px 14px 10px 14px !important; padding-right: 108px !important; border-radius: 8px !important; border: 1px solid #d1d5db !important; margin: 0 !important; transition: all 0.2s ease !important; min-height: 52px !important; display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; cursor: pointer !important; background: linear-gradient(180deg, #fff 0%, #f9fafb 100%) !important; box-shadow: 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8) !important; white-space: nowrap !important; }
+        .stRadio > div > label:hover { background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%) !important; border-color: #9ca3af !important; }
+        .stRadio > div > label[aria-checked="true"] { background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%) !important; border-color: #2563eb !important; box-shadow: 0 2px 6px rgba(37,99,235,0.2), inset 0 1px 0 rgba(255,255,255,0.5) !important; }
+        .stRadio > div > label::after { content: 'OFF' !important; position: absolute !important; right: 82px !important; top: 50% !important; transform: translateY(-50%) !important; font-size: 11px !important; font-weight: 800 !important; color: #9ca3af !important; letter-spacing: 0.5px !important; pointer-events: none !important; white-space: nowrap !important; }
+        .stRadio > div > label[aria-checked="true"]::after, .stRadio > div > label:has(input:checked)::after { content: 'ON' !important; right: 44px !important; color: #1e40af !important; }
+        .stRadio > div > label > div:first-child, .stRadio > div > label[data-baseweb="radio"] > div:first-child { order: 2; margin-left: 16px !important; margin-right: 0 !important; width: 76px !important; height: 34px !important; min-width: 76px !important; min-height: 34px !important; max-width: 76px !important; border-radius: 17px !important; border: 2px solid #9ca3af !important; background: #d1d5db !important; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1) !important; flex-shrink: 0; position: relative !important; }
+        .stRadio > div > label > div:first-child::after, .stRadio > div > label[data-baseweb="radio"] > div:first-child::after { content: '' !important; position: absolute !important; width: 24px !important; height: 24px !important; border-radius: 50% !important; top: 3px !important; left: 3px !important; right: auto !important; background: #f3f4f6 !important; box-shadow: 0 1px 2px rgba(0,0,0,0.15) !important; transition: left 0.2s ease, right 0.2s ease, background 0.2s ease !important; z-index: 1 !important; }
+        .stRadio > div > label[aria-checked="true"] > div:first-child::after, .stRadio > div > label:has(input:checked) > div:first-child::after { left: auto !important; right: 3px !important; background: #111827 !important; box-shadow: 0 1px 4px rgba(0,0,0,0.4) !important; }
+        .stRadio > div > label[aria-checked="true"] > div:first-child, .stRadio > div > label[aria-checked="true"] > div:first-child { border-color: #2563eb !important; background: #93c5fd !important; }
+        .stCheckbox > label { color: var(--text-primary) !important; padding: 8px 0 !important; min-height: 44px !important; display: inline-flex !important; align-items: center !important; cursor: pointer !important; }
+        .stCheckbox > label > div:first-child { width: 22px !important; height: 22px !important; min-width: 22px !important; min-height: 22px !important; border-radius: 6px !important; border: 2px solid var(--border-strong) !important; margin-right: 12px !important; box-shadow: inset 0 1px 2px rgba(0,0,0,0.08) !important; }
+        .stCheckbox > label[aria-checked="true"] > div:first-child, .stCheckbox > label:has(input:checked) > div:first-child { background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%) !important; border-color: #2563eb !important; box-shadow: 0 1px 2px rgba(0,0,0,0.2), inset 0 0 0 2px #fff, inset 0 1px 0 rgba(255,255,255,0.3) !important; }
+        .stFileUploader > div { background: var(--bg-card); border: 2px dashed var(--border-strong); border-radius: 8px; }
+        .stInfo { background: #eff6ff; border-left: 4px solid #3b82f6; color: var(--text-primary) !important; }
+        .stInfo * { color: var(--text-primary) !important; }
+        .stSuccess, div.stSuccess, .element-container .stSuccess, [data-testid="stAlert"].stSuccess, .stSuccess div, .stSuccess p, .stSuccess span, .stSuccess * { background: #dbeafe !important; background-color: #dbeafe !important; border-left: 4px solid #2563eb !important; border-left-color: #2563eb !important; color: #1e40af !important; }
+        .stSuccess [data-testid="stMarkdownContainer"], .stSuccess [data-testid="stMarkdownContainer"] * { color: #1e40af !important; background: transparent !important; background-color: transparent !important; }
+        div[data-testid="stAlert"].stSuccess, div[data-testid="stAlert"].stSuccess div { background: #dbeafe !important; background-color: #dbeafe !important; border-left-color: #2563eb !important; color: #1e40af !important; }
+        .stWarning { background: #fffbeb; border-left: 4px solid #f59e0b; color: #92400e !important; }
+        .stWarning * { color: #92400e !important; }
+        .stError { background: #fef2f2; border-left: 4px solid #ef4444; color: #b91c1c !important; }
+        .stError * { color: #b91c1c !important; }
+        .stCodeBlock, [data-testid="stCodeBlock"] { background: #f3f4f6 !important; color: #111827 !important; border: 1px solid #d1d5db !important; }
+        .stCodeBlock *, [data-testid="stCodeBlock"] * { background: transparent !important; color: #111827 !important; }
+        .streamlit-expanderHeader { background: #f3f4f6 !important; border: 1px solid #9ca3af !important; border-radius: 8px; color: #111827 !important; }
+        .streamlit-expanderHeader * { color: #111827 !important; background: transparent !important; }
+        div:has(> [data-testid="stExpander"]), div:has(> div > [data-testid="stExpander"]) { background: #f9fafb !important; border: 1px solid #9ca3af !important; border-radius: 8px !important; }
+        [data-testid="stExpander"], [data-testid="stExpander"] > div, [data-testid="stExpander"] div { background: #f9fafb !important; border-color: #9ca3af !important; }
+        [data-testid="stExpander"] [data-testid="stMarkdownContainer"], [data-testid="stExpander"] .stMarkdown, [data-testid="stExpander"] p, [data-testid="stExpander"] li { color: #111827 !important; background: transparent !important; }
+        [data-testid="stExpander"] [data-testid="stMarkdownContainer"] * { color: #111827 !important; background: transparent !important; }
+        [data-testid="stChatMessage"] { background: var(--bg-card); border: 1px solid var(--border); border-left: 4px solid var(--border-strong); border-radius: 8px; padding: 10px; color: var(--text-primary) !important; }
+        [data-testid="stChatMessage"] * { color: inherit !important; }
+        .stChatInputContainer { bottom: 28px !important; }
+        .stChatInputContainer, .stChatInputContainer > div { background: var(--bg-card) !important; border-color: var(--border-strong) !important; }
+        [data-testid="stChatInput"] { background: var(--bg-card) !important; color: #111827 !important; caret-color: #111827 !important; border: 2px solid #374151 !important; }
+        [data-testid="stChatInput"]::placeholder { color: #6b7280 !important; }
+        .stSelectbox > div > div { background: var(--bg-card); border: 2px solid var(--border); border-radius: 8px; color: #111827 !important; }
+        .stSelectbox > div > div:hover, .stSelectbox > div > div:focus-within { border-color: var(--border-strong); }
+        [data-baseweb="select"] [role="listbox"], [data-baseweb="menu"], [role="listbox"], [role="listbox"] div, ul[role="listbox"] li, [data-id="stSelectbox"] [role="listbox"] * { background: #ffffff !important; color: #111827 !important; }
+        [role="option"], [role="listbox"] [role="option"], li[role="option"], body [role="option"] { background: #ffffff !important; color: #111827 !important; }
+        [data-baseweb="popover"], [data-baseweb="popover"] * { background: #ffffff !important; color: #111827 !important; }
+        [data-baseweb="menu"] li, [data-baseweb="menu"] div, [data-baseweb="menu"] span { background: #ffffff !important; color: #111827 !important; }
+        .stTabs [data-baseweb="tab-list"] { background: var(--bg-card); border-bottom: 1px solid var(--border); }
+        .stTabs [data-baseweb="tab"] { color: var(--text-secondary) !important; }
+        .stTabs [aria-selected="true"] { color: var(--text-primary) !important; border-bottom: 2px solid var(--text-primary); }
+        .stDataFrame { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; }
+        hr { border-color: var(--border); }
+        a { color: var(--text-primary) !important; text-decoration: underline; text-decoration-color: var(--border-strong); }
+        a:hover { color: #374151 !important; text-decoration-color: #374151; }
+        .stSpinner > div { border-color: var(--border-strong) transparent transparent transparent; }
+        button[key^="conv_"] { background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%) !important; color: var(--text-primary) !important; border: 1px solid #9ca3af !important; border-radius: 8px !important; font-weight: 500 !important; text-align: left !important; padding: 10px 12px !important; box-shadow: 0 2px 0 #9ca3af, 0 4px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8) !important; transition: all 0.15s ease !important; }
+        button[key^="conv_"]:hover { background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%) !important; border-color: var(--border-strong) !important; color: var(--text-primary) !important; box-shadow: 0 2px 0 #9ca3af, 0 6px 12px rgba(0,0,0,0.1), inset 0 1px 0 #fff !important; transform: translateY(-1px); }
+        button[key^="conv_"]:active { transform: translateY(2px) !important; box-shadow: 0 1px 0 #9ca3af, 0 2px 6px rgba(0,0,0,0.08), inset 0 2px 4px rgba(0,0,0,0.08) !important; }
+        button[key^="conv_"][disabled] { background: var(--bg-subtle) !important; border-color: var(--border) !important; color: var(--text-secondary) !important; opacity: 1 !important; box-shadow: 0 1px 0 #d1d5db, inset 0 1px 0 rgba(255,255,255,0.5) !important; }
+        </style>
+        """, unsafe_allow_html=True)
     
     render_navigation_sidebar()
     
@@ -1171,6 +1111,17 @@ else:
     # ==========================================================================
     
     if page == "dashboard":
+        # Kolory dashboardu zależne od motywu (jasny = szarości, ciemny = złoty)
+        _theme = st.session_state.get("theme", "light")
+        if _theme == "light":
+            _d_title, _d_border, _d_text = "#1f2937", "#9ca3af", "#111827"
+            _d_bg, _d_border_left = "#e5e7eb", "#9ca3af"
+            _d_shadow = "none"
+        else:
+            _d_title, _d_border, _d_text = "#FFD700", "#FFD700", "#ffffff"
+            _d_bg = "rgba(212, 175, 55, 0.15)"
+            _d_border_left = "#D4AF37"
+            _d_shadow = "2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.4)"
         # Title and image side by side
         st.markdown("""
             <style>
@@ -1186,15 +1137,15 @@ else:
         with col_title:
             st.markdown(f"""
             <h1 style="
-                color: #FFD700;
+                color: {_d_title};
                 font-size: 3em;
                 font-weight: 900;
                 text-align: left;
-                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.4);
+                text-shadow: {_d_shadow};
                 letter-spacing: 4px;
                 text-transform: uppercase;
                 display: inline-block;
-                border-bottom: 3px solid #FFD700;
+                border-bottom: 3px solid {_d_border};
                 padding-bottom: 15px;
                 margin-bottom: 20px;
             ">
@@ -1215,73 +1166,111 @@ else:
         
         st.markdown("---")
         
-        # Welcome message
-        st.success(
-            t(lang,
-              f"Witaj, **{user['username']}** ({user['role']})",
-              f"Welcome, **{user['username']}** ({user['role']})"
+        # Welcome message – w trybie jasnym custom niebieski boks (Streamlit st.success ma zielone tło w DOM)
+        if _theme == "light":
+            st.markdown(f"""
+            <div style="
+                background: #dbeafe;
+                border-left: 4px solid #2563eb;
+                color: #1e40af;
+                padding: 14px 20px;
+                border-radius: 8px;
+                font-size: 1rem;
+                font-weight: 500;
+                margin: 0 0 1rem 0;
+            ">
+                Witaj, <strong>{user['username']}</strong> ({user['role']})
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.success(
+                t(lang,
+                  f"Witaj, **{user['username']}** ({user['role']})",
+                  f"Welcome, **{user['username']}** ({user['role']})"
+                )
             )
-        )
         
         st.markdown("---")
         
-        # Application description
-        st.markdown("""
-        <style>
-        .feature-card {
-            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(255, 215, 0, 0.08) 100%);
-            border: 2px solid rgba(212, 175, 55, 0.3);
-            border-radius: 15px;
-            padding: 20px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.15);
-        }
-        .feature-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(255, 215, 0, 0.6);
-            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
-            background: linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(255, 215, 0, 0.15) 100%);
-        }
-        </style>
-        """, unsafe_allow_html=True)
+        # Application description – style kart zależny od motywu
+        if _theme == "light":
+            st.markdown("""
+            <style>
+            .feature-card {
+                background: #f3f4f6;
+                border: 1px solid #9ca3af;
+                border-radius: 12px;
+                padding: 20px;
+                transition: all 0.2s ease;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            }
+            .feature-card:hover {
+                transform: translateY(-2px);
+                border-color: #6b7280;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+            </style>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <style>
+            .feature-card {
+                background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(255, 215, 0, 0.08) 100%);
+                border: 2px solid rgba(212, 175, 55, 0.3);
+                border-radius: 15px;
+                padding: 20px;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(212, 175, 55, 0.15);
+            }
+            .feature-card:hover {
+                transform: translateY(-5px);
+                border-color: rgba(255, 215, 0, 0.6);
+                box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+                background: linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(255, 215, 0, 0.15) 100%);
+            }
+            </style>
+            """, unsafe_allow_html=True)
         
+        _d_inner_bg = "#f3f4f6" if _theme == "light" else "linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(255, 215, 0, 0.05) 100%)"
+        _d_inner_shadow = "0 1px 3px rgba(0,0,0,0.08)" if _theme == "light" else "0 4px 15px rgba(212, 175, 55, 0.2)"
+        _d_outer_bg = "#d1d5db" if _theme == "light" else "linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(184, 148, 31, 0.1) 100%)"
         st.markdown(f"""
         <div style="
-            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(184, 148, 31, 0.1) 100%);
-            border-left: 4px solid #D4AF37;
+            background: {_d_outer_bg};
+            border-left: 4px solid {_d_border_left};
             border-radius: 10px;
             padding: 25px;
             margin: 20px 0;
         ">
             <h2 style="
-                color: #FFD700;
+                color: {_d_title};
                 margin-bottom: 25px;
                 font-size: 3em;
                 font-weight: 900;
                 text-align: center;
-                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.4);
+                text-shadow: {_d_shadow};
                 letter-spacing: 4px;
                 text-transform: uppercase;
-                border-bottom: 3px solid #FFD700;
+                border-bottom: 3px solid {_d_border};
                 padding-bottom: 15px;
             ">
                 {t(lang, "📚 O APLIKACJI", "📚 ABOUT THE APPLICATION")}
             </h2>
             <div style="
-                background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(255, 215, 0, 0.05) 100%);
-                border-left: 4px solid #D4AF37;
+                background: {_d_inner_bg};
+                border-left: 4px solid {_d_border_left};
                 padding: 20px;
                 margin-bottom: 30px;
                 border-radius: 10px;
-                box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+                box-shadow: {_d_inner_shadow};
             ">
                 <p style="
-                    color: #ffffff; 
+                    color: {_d_text}; 
                     font-size: 17px; 
                     line-height: 1.9; 
                     margin: 0;
                     text-align: justify;
-                    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+                    text-shadow: none;
                 ">
                     {t(lang, 
                     "Ta aplikacja to zaawansowane narzędzie AI do analizy, wyjaśniania i konwersji kodu programistycznego. " +
@@ -1296,12 +1285,12 @@ else:
                 </p>
             </div>
             <h3 style="
-                color: #FFD700; 
+                color: {_d_title}; 
                 margin-top: 30px; 
                 margin-bottom: 25px; 
                 font-size: 1.8em;
                 text-align: center;
-                text-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+                text-shadow: none;
                 letter-spacing: 1px;
             ">
                 {t(lang, "✨ Główne funkcje", "✨ Main Features")}
@@ -1315,19 +1304,19 @@ else:
                 <div class="feature-card">
                     <div style="font-size: 2.5em; margin-bottom: 10px; text-align: center;">💬</div>
                     <h4 style="
-                        color: #FFD700; 
+                        color: {_d_title}; 
                         margin: 0 0 12px 0;
                         font-size: 1.6em;
-                        font-weight: 900;
+                        font-weight: 700;
                         text-align: center;
-                        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 215, 0, 0.6), 0 0 20px rgba(255, 215, 0, 0.4);
+                        text-shadow: none;
                         letter-spacing: 2px;
                         text-transform: uppercase;
                     ">
                         {t(lang, "Chat z AI", "AI Chat")}
                     </h4>
                     <p style="
-                        color: #ffffff; 
+                        color: {_d_text}; 
                         font-size: 14px; 
                         line-height: 1.7; 
                         margin: 0;
@@ -1341,19 +1330,19 @@ else:
                 <div class="feature-card">
                     <div style="font-size: 2.5em; margin-bottom: 10px; text-align: center;">📸</div>
                     <h4 style="
-                        color: #FFD700; 
+                        color: {_d_title}; 
                         margin: 0 0 12px 0;
                         font-size: 1.6em;
-                        font-weight: 900;
+                        font-weight: 700;
                         text-align: center;
-                        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 215, 0, 0.6), 0 0 20px rgba(255, 215, 0, 0.4);
+                        text-shadow: none;
                         letter-spacing: 2px;
                         text-transform: uppercase;
                     ">
                         {t(lang, "Analiza kodu", "Code Analysis")}
                     </h4>
                     <p style="
-                        color: #ffffff; 
+                        color: {_d_text}; 
                         font-size: 14px; 
                         line-height: 1.7; 
                         margin: 0;
@@ -1367,19 +1356,19 @@ else:
                 <div class="feature-card">
                     <div style="font-size: 2.5em; margin-bottom: 10px; text-align: center;">🔄</div>
                     <h4 style="
-                        color: #FFD700; 
+                        color: {_d_title}; 
                         margin: 0 0 12px 0;
                         font-size: 1.6em;
-                        font-weight: 900;
+                        font-weight: 700;
                         text-align: center;
-                        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 215, 0, 0.6), 0 0 20px rgba(255, 215, 0, 0.4);
+                        text-shadow: none;
                         letter-spacing: 2px;
                         text-transform: uppercase;
                     ">
                         {t(lang, "Konwersja kodu", "Code Conversion")}
                     </h4>
                     <p style="
-                        color: #ffffff; 
+                        color: {_d_text}; 
                         font-size: 14px; 
                         line-height: 1.7; 
                         margin: 0;
@@ -1393,19 +1382,19 @@ else:
                 <div class="feature-card">
                     <div style="font-size: 2.5em; margin-bottom: 10px; text-align: center;">📊</div>
                     <h4 style="
-                        color: #FFD700; 
+                        color: {_d_title}; 
                         margin: 0 0 12px 0;
                         font-size: 1.6em;
-                        font-weight: 900;
+                        font-weight: 700;
                         text-align: center;
-                        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 215, 0, 0.6), 0 0 20px rgba(255, 215, 0, 0.4);
+                        text-shadow: none;
                         letter-spacing: 2px;
                         text-transform: uppercase;
                     ">
                         {t(lang, "Śledzenie kosztów", "Cost Tracking")}
                     </h4>
                     <p style="
-                        color: #ffffff; 
+                        color: {_d_text}; 
                         font-size: 14px; 
                         line-height: 1.7; 
                         margin: 0;
@@ -1851,6 +1840,26 @@ else:
 
         # Chat input
         prompt = st.chat_input(t(lang, "Napisz wiadomość...", "Type a message..."))
+        # CSS musi być poniżej chat_input – inaczej nie działa (podniesienie nad dolny pasek + styl wg motywu)
+        _chat_theme = st.session_state.get("theme", "light")
+        if _chat_theme == "light":
+            st.markdown("""
+            <style>
+            .stChatInputContainer, .stChatFloatingInputContainer, section[data-testid="stChatInputContainer"] { position: fixed !important; bottom: 28px !important; }
+            .stChatInputContainer > div, .stChatFloatingInputContainer > div { background: #f3f4f6 !important; border: 2px solid #374151 !important; border-radius: 8px !important; }
+            [data-testid="stChatInput"] { background: #f9fafb !important; color: #111827 !important; caret-color: #111827 !important; border: 2px solid #374151 !important; border-radius: 8px !important; }
+            [data-testid="stChatInput"]::placeholder { color: #6b7280 !important; }
+            </style>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <style>
+            .stChatInputContainer, .stChatFloatingInputContainer, section[data-testid="stChatInputContainer"] { position: fixed !important; bottom: 28px !important; }
+            .stChatInputContainer > div, .stChatFloatingInputContainer > div { background: rgba(14, 17, 23, 0.95) !important; border: 2px solid rgba(212, 175, 55, 0.5) !important; border-radius: 8px !important; }
+            [data-testid="stChatInput"] { background: rgba(14, 17, 23, 0.9) !important; color: #ffffff !important; caret-color: #ffffff !important; border: 2px solid rgba(212, 175, 55, 0.4) !important; border-radius: 8px !important; }
+            [data-testid="stChatInput"]::placeholder { color: rgba(255, 255, 255, 0.6) !important; }
+            </style>
+            """, unsafe_allow_html=True)
         
         # Handle transcribed text from voice input
         if "transcribed_text" in st.session_state and st.session_state.transcribed_text:
@@ -1958,7 +1967,8 @@ else:
                 "screenshot": t(lang, "📸 Zrzut ekranu (Snipping Tool)", "📸 Screenshot (Snipping Tool)"),
                 "upload": t(lang, "📁 Prześlij plik ze zdjęciem", "📁 Upload image file")
             }.get(x, x),
-            horizontal=False
+            horizontal=False,
+            key="explain_input_method"
         )
 
         # Instructions
@@ -1973,7 +1983,7 @@ else:
                 "💡 **Tip:** Take a screenshot (Win+Shift+S), then click below and paste (Ctrl+V)."
             ))
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
             translation_level = st.radio(
                 t(lang, "Poziom wyjaśnienia", "Explanation Level"),
@@ -1981,7 +1991,6 @@ else:
                 format_func=lambda x: t(lang, "Ogólny" if x == "simple" else "Zaawansowany", 
                                       "General" if x == "simple" else "Advanced")
             )
-        
         with col2:
             voice_option = st.selectbox(
                 t(lang, "Wyjaśnienie głosowe", "Voice Explanation"),
@@ -1992,6 +2001,17 @@ else:
                     "narrate": t(lang, "Opowiedz w skrócie", "Narrate Briefly"),
                     "both": t(lang, "Oba", "Both")
                 }.get(x, x)
+            )
+        with col3:
+            explain_audience = st.selectbox(
+                t(lang, "Wyjaśnij jak dla", "Explain for"),
+                options=["el5", "junior", "senior"],
+                format_func=lambda x: {
+                    "el5": t(lang, "Dziecka (5 lat)", "Like I'm 5"),
+                    "junior": t(lang, "Juniora", "Junior dev"),
+                    "senior": t(lang, "Seniora", "Senior dev")
+                }.get(x, x),
+                help=t(lang, "Dostosuj poziom języka wyjaśnienia do odbiorcy.", "Adjust explanation style to the audience.")
             )
         
         # Model selection
@@ -2019,35 +2039,25 @@ else:
         uploaded_file = None
 
         if input_method == "paste_text":
-            # Add CSS to make the "Press Ctrl+Enter to apply" text more visible
+            # Po rerunie (np. zmiana motywu) przywróć kod do pola, żeby wynik się znów wyświetlił
+            if st.session_state.get("paste_last_result") and st.session_state["paste_last_result"].get("code"):
+                cur = st.session_state.get("code_paste_textarea") or ""
+                if cur.strip() == "":
+                    st.session_state["code_paste_textarea"] = st.session_state["paste_last_result"]["code"]
+            # Add CSS – hint "Ctrl+Enter" w tym samym jasnym szarym 3D co Zapisz/Usuń
             st.markdown("""
                 <style>
-                /* Make the Ctrl+Enter hint text larger and more visible with gold theme */
-                div[data-testid="stTextArea"] label + div[style*="position: relative"] div[style*="position: absolute"] {
-                    font-size: 14px !important;
-                    font-weight: 600 !important;
-                    color: #0b0b0b !important;
-                    background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%) !important;
-                    padding: 4px 8px !important;
-                    border-radius: 4px !important;
-                    box-shadow: 0 2px 6px rgba(212, 175, 55, 0.3) !important;
-                }
-                /* Alternative selector for Streamlit's hint text */
-                div[data-testid="stTextArea"] > div > div > div[style*="position: absolute"] {
-                    font-size: 14px !important;
-                    font-weight: 600 !important;
-                    color: #0b0b0b !important;
-                    background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%) !important;
-                }
-                /* Target the hint text more specifically */
+                div[data-testid="stTextArea"] label + div[style*="position: relative"] div[style*="position: absolute"],
+                div[data-testid="stTextArea"] > div > div > div[style*="position: absolute"],
                 .stTextArea > div > div > div[style*="absolute"] {
-                    font-size: 16px !important;
-                    font-weight: 700 !important;
-                    color: #0b0b0b !important;
-                    background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%) !important;
+                    font-size: 14px !important;
+                    font-weight: 600 !important;
+                    color: #111827 !important;
+                    background: linear-gradient(180deg, #e5e7eb 0%, #d1d5db 50%, #9ca3af 100%) !important;
                     padding: 6px 10px !important;
                     border-radius: 6px !important;
-                    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3) !important;
+                    border: 1px solid #9ca3af !important;
+                    box-shadow: 0 2px 0 #9ca3af, 0 4px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8) !important;
                 }
                 </style>
             """, unsafe_allow_html=True)
@@ -2062,16 +2072,76 @@ else:
                 key="code_paste_textarea"
             )
             
-            # Add visible hint below the text area (aligned to right)
+            # Hint pod polem – w jasnym szary 3D; w ciemnym nadpisany w globalnym CSS na złoty (.ctrl-enter-hint)
             st.markdown(
                 f'<div style="margin-top: -10px; margin-bottom: 10px; text-align: right;">'
-                f'<span style="font-size: 16px; font-weight: 600; color: #0b0b0b; background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%); padding: 6px 12px; border-radius: 6px; display: inline-block; box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);">'
+                f'<span class="ctrl-enter-hint" style="font-size: 14px; font-weight: 600; color: #111827; background: linear-gradient(180deg, #e5e7eb 0%, #d1d5db 50%, #9ca3af 100%); padding: 6px 12px; border-radius: 6px; display: inline-block; border: 1px solid #9ca3af; box-shadow: 0 2px 0 #9ca3af, 0 4px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8);">'
                 f'💡 {t(lang, "Naciśnij Ctrl+Enter aby zastosować", "Press Ctrl+Enter to apply")}'
                 f'</span></div>',
                 unsafe_allow_html=True
             )
             
-            if code_text and st.button(t(lang, "Wyjaśnij kod", "Explain Code"), use_container_width=True):
+            # Instrukcja odbiorcy (el5 / junior / senior) – dopisana do promptu
+            _audience_instruction = {
+                "el5": (
+                    " IMPORTANT: Explain as if to a 5-year-old. Use very simple words, no jargon, short sentences, and everyday analogies.",
+                    " WAŻNE: Wyjaśnij jak dla pięciolatka. Użyj najprostszych słów, bez żargonu, krótkie zdania i codzienne analogie."
+                ),
+                "junior": (
+                    " IMPORTANT: Explain for a junior developer. Assume basic programming knowledge but explain concepts clearly and why we do things this way.",
+                    " WAŻNE: Wyjaśnij dla junior developera. Zakładaj podstawy programowania, ale klarownie wyjaśniaj koncepcje i uzasadnienie."
+                ),
+                "senior": (
+                    " IMPORTANT: Explain for a senior developer. Be concise and technical. Focus on intent, edge cases, and trade-offs.",
+                    " WAŻNE: Wyjaśnij dla senior developera. Bądź zwięzły i techniczny. Skup się na intencji, edge case'ach i kompromisach."
+                ),
+            }
+            _audience_add = _audience_instruction.get(explain_audience, _audience_instruction["junior"])
+            _audience_add = _audience_add[0] if lang == "en" else _audience_add[1]
+
+            btn_col1, btn_col2 = st.columns(2)
+            with btn_col1:
+                do_explain = st.button(t(lang, "Wyjaśnij kod", "Explain Code"), use_container_width=True)
+            with btn_col2:
+                do_tests = st.button(t(lang, "Wygeneruj testy jednostkowe", "Generate Unit Tests"), use_container_width=True)
+
+            if code_text and do_tests:
+                with st.spinner(t(lang, "Generowanie testów...", "Generating tests...")):
+                    try:
+                        if lang == "en":
+                            test_prompt = f"""Generate unit tests for the following code. Use the appropriate testing framework for the language (e.g. pytest for Python, Jest for JavaScript). Return the test code in a single code block. Add brief comments only if needed. Do not repeat the original code.
+
+Code:
+```
+{code_text}
+```"""
+                        else:
+                            test_prompt = f"""Wygeneruj testy jednostkowe do poniższego kodu. Użyj odpowiedniego frameworka (np. pytest dla Pythona, Jest dla JavaScript). Zwróć tylko kod testów w jednym bloku kodu. Krótkie komentarze tylko jeśli potrzebne. Nie powtarzaj oryginalnego kodu.
+
+Kod:
+```
+{code_text}
+```"""
+                        from app.services.ai_service import chat_completion
+                        try:
+                            test_response = chat_completion(
+                                [{"role": "user", "content": test_prompt}],
+                                personality="default",
+                                model=selected_model
+                            )
+                            content = test_response["content"]
+                            st.subheader(t(lang, "Wygenerowane testy jednostkowe", "Generated Unit Tests"))
+                            st.markdown(content)
+                            if test_response.get("usage"):
+                                with st.expander(t(lang, "Szczegóły użycia", "Usage Details")):
+                                    st.json(test_response["usage"])
+                            st.session_state["paste_last_result"] = {"type": "tests", "code": code_text, "content": content, "usage": test_response.get("usage")}
+                        except ValueError:
+                            st.info(t(lang, "Aby generować testy, wprowadź klucz OpenAI API w panelu bocznym.", "To generate tests, enter your OpenAI API key in the sidebar."))
+                    except Exception as e:
+                        st.error(str(e))
+
+            if code_text and do_explain:
                 with st.spinner(t(lang, "Przetwarzanie...", "Processing...")):
                     try:
                         # Use text translation to explain the code
@@ -2094,7 +2164,7 @@ Format your response with clear sections. For alternative implementations, use c
 
 Code to analyze:
 ```\n{code_text}\n```"""
-                            
+                            prompt += _audience_add
                             if voice_option in ["read", "both"]:
                                 prompt += " Respond in a way suitable for reading aloud - use simple language and short sentences."
                         else:  # Polish
@@ -2116,7 +2186,7 @@ Sformatuj odpowiedź z wyraźnymi sekcjami. Dla alternatywnych implementacji uż
 
 Kod do analizy:
 ```\n{code_text}\n```"""
-                            
+                            prompt += _audience_add
                             if voice_option in ["read", "both"]:
                                 prompt += " Odpowiedz w sposób odpowiedni do odczytania na głos - użyj prostego języka i krótkich zdań."
                         
@@ -2289,9 +2359,24 @@ Kod:
                                 st.error(f"{t(lang, 'Błąd generowania audio:', 'Audio generation error:')} {e}")
                         
                         st.success(t(lang, f"Koszt: ${cost:.4f}", f"Cost: ${cost:.4f}"))
+                        st.session_state["paste_last_result"] = {"type": "explain", "code": code_text, "content": response["content"], "usage": response.get("usage"), "translation_level": translation_level, "voice_option": voice_option, "cost": cost}
                         
                     except Exception as e:
                         st.error(f"Błąd: {e}")
+
+            # Po przełączeniu motywu (rerun) – ponów wyświetlanie ostatniego wyniku, żeby nic nie znikało
+            stored = st.session_state.get("paste_last_result")
+            code_matches = stored and (stored.get("code") == code_text if code_text else True)
+            if not do_tests and not do_explain and stored and code_matches:
+                if stored.get("type") == "tests":
+                    st.subheader(t(lang, "Wygenerowane testy jednostkowe", "Generated Unit Tests"))
+                    st.markdown(stored["content"])
+                    if stored.get("usage"):
+                        with st.expander(t(lang, "Szczegóły użycia", "Usage Details")):
+                            st.json(stored["usage"])
+                elif stored.get("type") == "explain":
+                    st.markdown(stored["content"])
+                    st.success(t(lang, f"Koszt: ${stored.get('cost', 0):.4f}", f"Cost: ${stored.get('cost', 0):.4f}"))
         
         elif input_method == "screenshot":
             # Snipping Tool: tylko wklejanie zrzutu (bez uploadera – upload jest w trzeciej opcji)
@@ -2724,7 +2809,84 @@ Na podstawie tego wyjaśnienia:
             del st.session_state.flash_message
             del st.session_state.flash_type
         
-        # Tabs
+        # Tabs – przesuwająca się kreska u dołu; kolor dopasowany do motywu (złoto / szarość)
+        _admin_theme = st.session_state.get("theme", "light")
+        if _admin_theme == "dark":
+            st.markdown("""
+            <style>
+            .stTabs [data-baseweb="tab-list"] {
+                background: linear-gradient(180deg, rgba(25,28,35,0.95) 0%, rgba(18,21,27,0.98) 100%) !important;
+                border: 1px solid rgba(212, 175, 55, 0.3) !important;
+                border-bottom: 2px solid rgba(212, 175, 55, 0.25) !important;
+                border-radius: 12px 12px 0 0 !important;
+                padding: 10px 12px 0 12px !important;
+                gap: 6px !important;
+                min-height: 56px !important;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04) !important;
+            }
+            .stTabs [data-baseweb="tab"] {
+                color: rgba(255, 255, 255, 0.7) !important;
+                font-weight: 600 !important;
+                font-size: 15px !important;
+                letter-spacing: 0.04em !important;
+                padding: 12px 20px !important;
+                border-radius: 10px 10px 0 0 !important;
+                border: 1px solid transparent !important;
+                border-bottom: none !important;
+                transition: all 0.2s ease !important;
+            }
+            .stTabs [data-baseweb="tab"]:hover {
+                color: #E5C158 !important;
+                background: rgba(212, 175, 55, 0.1) !important;
+            }
+            .stTabs [aria-selected="true"] {
+                color: #D4AF37 !important;
+                font-weight: 700 !important;
+                background: rgba(212, 175, 55, 0.08) !important;
+                border: 1px solid rgba(212, 175, 55, 0.35) !important;
+                border-bottom: 4px solid #D4AF37 !important;
+                box-shadow: 0 -2px 10px rgba(212, 175, 55, 0.2), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <style>
+            .stTabs [data-baseweb="tab-list"] {
+                background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+                border: 1px solid #d1d5db !important;
+                border-bottom: 2px solid #e5e7eb !important;
+                border-radius: 12px 12px 0 0 !important;
+                padding: 10px 12px 0 12px !important;
+                gap: 6px !important;
+                min-height: 56px !important;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.06) !important;
+            }
+            .stTabs [data-baseweb="tab"] {
+                color: #64748b !important;
+                font-weight: 600 !important;
+                font-size: 15px !important;
+                letter-spacing: 0.04em !important;
+                padding: 12px 20px !important;
+                border-radius: 10px 10px 0 0 !important;
+                border: 1px solid transparent !important;
+                border-bottom: none !important;
+                transition: all 0.2s ease !important;
+            }
+            .stTabs [data-baseweb="tab"]:hover {
+                color: #111827 !important;
+                background: rgba(0, 0, 0, 0.04) !important;
+            }
+            .stTabs [aria-selected="true"] {
+                color: #111827 !important;
+                font-weight: 700 !important;
+                background: #f3f4f6 !important;
+                border: 1px solid #9ca3af !important;
+                border-bottom: 4px solid #374151 !important;
+                box-shadow: 0 -1px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
         tab_view, tab_add, tab_delete, tab_manage = st.tabs([
             t(lang, "Przegląd użytkowników", "View Users"),
             t(lang, "Dodaj użytkownika", "Add User"),

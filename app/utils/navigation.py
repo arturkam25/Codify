@@ -50,19 +50,27 @@ def render_navigation_sidebar():
     # Store language in session state as backup
     st.session_state["lang"] = current_lang
 
+    # Kolory sidebara: jasny = szarości (jak ze zdjęcia), ciemny = złoty
+    theme = st.session_state.get("theme", "dark")
+    if theme == "light":
+        sidebar_heading_color = "#1f2937"
+        sidebar_border_color = "#e5e7eb"
+        sidebar_heading_style = "font-weight: 700; letter-spacing: 2px; text-transform: uppercase;"
+    else:
+        sidebar_heading_color = "#FFD700"
+        sidebar_border_color = "#FFD700"
+        sidebar_heading_style = "font-weight: 900; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 215, 0, 0.6); letter-spacing: 3px; text-transform: uppercase;"
+
     with st.sidebar:
         st.markdown(f"""
         <div style="
-            color: #FFD700;
+            color: {sidebar_heading_color};
             font-size: 1.8em;
-            font-weight: 900;
             text-align: center;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.4);
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            border-bottom: 2px solid #FFD700;
+            border-bottom: 2px solid {sidebar_border_color};
             padding-bottom: 10px;
             margin-bottom: 15px;
+            {sidebar_heading_style}
         ">
             🧭 {t(current_lang, 'NAWIGACJA', 'NAVIGATION')}
         </div>
@@ -76,11 +84,11 @@ def render_navigation_sidebar():
         if user:
             st.markdown(f"""
             <div style="
-                color: #FFD700;
+                color: {sidebar_heading_color};
                 font-size: 1.2em;
                 font-weight: 700;
                 text-align: center;
-                border-bottom: 1px solid #FFD700;
+                border-bottom: 1px solid {sidebar_border_color};
                 padding-bottom: 8px;
                 margin-bottom: 10px;
             ">
@@ -169,6 +177,35 @@ def render_navigation_sidebar():
             
             st.markdown("---")
 
+        # Theme toggle (light / dark)
+        if "theme" not in st.session_state:
+            st.session_state.theme = "light"
+        st.markdown(f"""
+        <div style="
+            color: {sidebar_heading_color};
+            font-size: 1em;
+            font-weight: 700;
+            margin-bottom: 8px;
+        ">
+            🎨 {t(current_lang, 'MOTYW', 'THEME')}
+        </div>
+        """, unsafe_allow_html=True)
+        theme_labels = {"dark": "🌙 " + t(current_lang, "Ciemny", "Dark"), "light": "☀️ " + t(current_lang, "Jasny", "Light")}
+        theme_idx = 0 if st.session_state.theme == "dark" else 1
+        theme_choice = st.radio(
+            t(current_lang, "Tło", "Background"),
+            options=["dark", "light"],
+            format_func=lambda x: theme_labels[x],
+            index=theme_idx,
+            key="theme_radio",
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+        if theme_choice != st.session_state.theme:
+            st.session_state.theme = theme_choice
+            st.rerun()
+        st.markdown("---")
+
         if st.button(t(current_lang, "Strona główna", "Home"), use_container_width=True, key="nav_home"):
             st.query_params["page"] = "dashboard"
             st.query_params["lang"] = current_lang
@@ -199,16 +236,13 @@ def render_navigation_sidebar():
             st.markdown("---")
             st.markdown(f"""
             <div style="
-                color: #FFD700;
+                color: {sidebar_heading_color};
                 font-size: 1.8em;
-                font-weight: 900;
                 text-align: center;
-                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.4);
-                letter-spacing: 3px;
-                text-transform: uppercase;
-                border-bottom: 2px solid #FFD700;
+                border-bottom: 2px solid {sidebar_border_color};
                 padding-bottom: 10px;
                 margin-bottom: 15px;
+                {sidebar_heading_style}
             ">
                 🔐 {t(current_lang, 'ADMINISTRACJA', 'ADMINISTRATION')}
             </div>
