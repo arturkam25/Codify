@@ -8,7 +8,6 @@ import re
 from pathlib import Path
 import streamlit as st
 from app.data.schema import create_tables
-from app.data.db import get_db_type
 from app.data.security import authenticate_user, is_valid_email
 from app.data.users import register_user_public, reset_password_with_recovery, get_user_by_email
 from app.utils.auth import require_login, logout
@@ -447,12 +446,6 @@ elif page == "login":
     with col2:
         st.title(t(lang, "🔐 Logowanie", "🔐 Log in"))
         st.markdown("---")
-
-        if get_db_type() == "sqlite":
-            st.info(t(lang,
-                "**Streamlit Cloud:** Ta aplikacja używa tymczasowej bazy – konta nie są zachowane między restartami. Jeśli nie możesz się zalogować, zarejestruj się ponownie. Aby mieć trwałe konta na Cloud, ustaw w **Settings → Secrets** adres bazy PostgreSQL (szczegóły w README).",
-                "**Streamlit Cloud:** This app uses a temporary database – accounts are not kept across restarts. If you can't log in, register again. To keep accounts on Cloud, set a PostgreSQL database URL in **Settings → Secrets** (see README)."
-            ))
 
         if st.button(t(lang, "← Wróć", "← Back")):
             set_qp(page="landing", lang=lang)
