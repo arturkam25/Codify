@@ -39,6 +39,27 @@ streamlit run app.py
 
 Aplikacja będzie dostępna pod adresem: `http://localhost:8501`
 
+## Streamlit Cloud – trwała historia użytkowników
+
+Na Streamlit Cloud **domyślnie baza jest w pamięci kontenera** – przy każdym redeployu lub restarcie użytkownicy i historia znikają. Żeby mieć **trwałą historię**:
+
+1. **Załóż darmową bazę PostgreSQL** (np.):
+   - [Neon](https://neon.tech) – darmowy tier, podajesz e-mail, tworzysz projekt, kopiujesz **Connection string** (np. `postgresql://user:haslo@ep-xxx.region.aws.neon.tech/neondb?sslmode=require`).
+   - [Supabase](https://supabase.com) – Project Settings → Database → **Connection string** (URI).
+
+2. **W Streamlit Cloud** (dashboard Twojej aplikacji):
+   - Wejdź w **Settings** → **Secrets**.
+   - Wklej (podmień URL na swój):
+
+   ```toml
+   [database]
+   url = "postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require"
+   ```
+
+3. **Zapisz** i zrób **redeploy** aplikacji (np. z zakładki **Manage app** → **Reboot app** lub push do repozytorium).
+
+Po ustawieniu Secrets aplikacja połączy się z zewnętrzną bazą – użytkownicy, konwersacje i koszty będą zapisywane na stałe i przetrwają restarty.
+
 ## Struktura projektu
 
 ```

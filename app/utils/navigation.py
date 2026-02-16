@@ -50,7 +50,7 @@ def render_navigation_sidebar():
     # Store language in session state as backup
     st.session_state["lang"] = current_lang
 
-    # Kolory sidebara: jasny = szarości (jak ze zdjęcia), ciemny = złoty
+    # Kolory sidebara zależne od motywu (ciemny = złoty, jasny = szarość)
     theme = st.session_state.get("theme", "dark")
     if theme == "light":
         sidebar_heading_color = "#1f2937"
@@ -132,14 +132,12 @@ def render_navigation_sidebar():
                 st.session_state[widget_key] = st.session_state.user_api_key
             
             # Main form containing input and buttons
-            with st.form("api_key_form", clear_on_submit=False):
+            with st.form("api_key_form", clear_on_submit=False, enter_to_submit=False):
                 api_key_input = st.text_input(
                     t(current_lang, "Wprowadź swój klucz API OpenAI", "Enter your OpenAI API key"),
                     value="" if reset_flag else st.session_state[widget_key],
                     type="password",
-                    help=t(current_lang, 
-                           "Wprowadź swój klucz API OpenAI aby używać aplikacji na własnym koncie. Klucz jest przechowywany tylko w tej sesji.",
-                           "Enter your OpenAI API key to use the app with your own account. The key is stored only in this session."),
+                    help=None,
                     key=widget_key
                 )
                 
@@ -177,9 +175,7 @@ def render_navigation_sidebar():
             
             st.markdown("---")
 
-        # Theme toggle (light / dark)
-        if "theme" not in st.session_state:
-            st.session_state.theme = "light"
+        # Przełącznik motywu (ciemny / jasny)
         st.markdown(f"""
         <div style="
             color: {sidebar_heading_color};
@@ -191,7 +187,7 @@ def render_navigation_sidebar():
         </div>
         """, unsafe_allow_html=True)
         theme_labels = {"dark": "🌙 " + t(current_lang, "Ciemny", "Dark"), "light": "☀️ " + t(current_lang, "Jasny", "Light")}
-        theme_idx = 0 if st.session_state.theme == "dark" else 1
+        theme_idx = 0 if st.session_state.get("theme", "dark") == "dark" else 1
         theme_choice = st.radio(
             t(current_lang, "Tło", "Background"),
             options=["dark", "light"],
@@ -201,7 +197,7 @@ def render_navigation_sidebar():
             horizontal=True,
             label_visibility="collapsed"
         )
-        if theme_choice != st.session_state.theme:
+        if theme_choice != st.session_state.get("theme", "dark"):
             st.session_state.theme = theme_choice
             st.rerun()
         st.markdown("---")

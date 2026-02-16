@@ -1,8 +1,8 @@
-# Domyślny motyw bazowy Streamlit – "light" zapewnia ciemny tekst w selectbox/input przy naszym jasnym UI
+# Motyw bazowy Streamlit – "dark" spójny z całą aplikacją (logowanie, dashboard, złote akcenty)
 [theme]
-base = "light"
-primaryColor = "#3b82f6"
-backgroundColor = "#e5e7eb"
-secondaryBackgroundColor = "#f3f4f6"
-textColor = "#111827"
+base = "dark"
+primaryColor = "#D4AF37"
+backgroundColor = "#0e1117"
+secondaryBackgroundColor = "#1a1a2e"
+textColor = "#ffffff"
 font = "sans serif"

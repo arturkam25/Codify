@@ -15,20 +15,7 @@ def log_cost(user_id, cost_usd, conversation_id=None, translation_id=None):
     now = datetime.now().isoformat()
     
     try:
-        # Create costs table if it doesn't exist
-        curr.execute("""
-            CREATE TABLE IF NOT EXISTS costs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                date TEXT NOT NULL,
-                cost_usd REAL NOT NULL,
-                conversation_id INTEGER,
-                translation_id INTEGER,
-                created_at TEXT,
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        """)
-        
+        # Tabela costs jest tworzona w schema.create_tables() przy starcie aplikacji
         curr.execute(
             """
             INSERT INTO costs (user_id, date, cost_usd, conversation_id, translation_id, created_at)
@@ -50,21 +37,6 @@ def get_daily_costs(user_id, days=60):
     cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
     
     try:
-        # Ensure costs table exists
-        curr.execute("""
-            CREATE TABLE IF NOT EXISTS costs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                date TEXT NOT NULL,
-                cost_usd REAL NOT NULL,
-                conversation_id INTEGER,
-                translation_id INTEGER,
-                created_at TEXT,
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        """)
-        conn.commit()
-        
         curr.execute(
             """
             SELECT date, SUM(cost_usd) as total
@@ -85,21 +57,6 @@ def get_total_cost(user_id):
     conn = get_connection()
     curr = conn.cursor()
     try:
-        # Ensure costs table exists
-        curr.execute("""
-            CREATE TABLE IF NOT EXISTS costs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                date TEXT NOT NULL,
-                cost_usd REAL NOT NULL,
-                conversation_id INTEGER,
-                translation_id INTEGER,
-                created_at TEXT,
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        """)
-        conn.commit()
-        
         curr.execute(
             "SELECT SUM(cost_usd) FROM costs WHERE user_id = ?",
             (user_id,)
@@ -114,21 +71,6 @@ def get_conversation_cost(conversation_id):
     conn = get_connection()
     curr = conn.cursor()
     try:
-        # Ensure costs table exists
-        curr.execute("""
-            CREATE TABLE IF NOT EXISTS costs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                date TEXT NOT NULL,
-                cost_usd REAL NOT NULL,
-                conversation_id INTEGER,
-                translation_id INTEGER,
-                created_at TEXT,
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        """)
-        conn.commit()
-        
         curr.execute(
             "SELECT SUM(cost_usd) FROM costs WHERE conversation_id = ?",
             (conversation_id,)

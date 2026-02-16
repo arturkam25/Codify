@@ -4,6 +4,7 @@
 
 import base64
 import io
+import re
 from pathlib import Path
 import streamlit as st
 from app.data.schema import create_tables
@@ -102,7 +103,7 @@ if "show_forgot_password" not in st.session_state:
 if "user_api_key" not in st.session_state:
     st.session_state.user_api_key = ""
 if "theme" not in st.session_state:
-    st.session_state.theme = "dark"  # "light" | "dark"
+    st.session_state.theme = "dark"
 
 # Get routing
 qp = get_qp()
@@ -480,8 +481,24 @@ elif page == "login":
 elif page == "register":
     hide_sidebar_completely()
     
-    # Register page styling with gold/yellow theme
-    st.markdown("""
+    # Styl rejestracji zależny od motywu (jasny: jasne tła, widoczna strzałka expandera)
+    _reg_theme = st.session_state.get("theme", "dark")
+    if _reg_theme == "light":
+        st.markdown("""
+        <style>
+        .stForm { background: #f9fafb !important; border: 1px solid #9ca3af !important; border-radius: 15px !important; padding: 30px !important; }
+        .stTextInput > div > div > input { background: #ffffff !important; border: 1px solid #d1d5db !important; color: #111827 !important; }
+        .stTextInput > div > div > input::placeholder { color: #6b7280 !important; }
+        .stTextInput > label { color: #1f2937 !important; font-weight: 700 !important; }
+        .streamlit-expanderHeader { background: #f3f4f6 !important; border: 1px solid #9ca3af !important; border-radius: 8px !important; color: #111827 !important; }
+        .streamlit-expanderHeader * { color: #111827 !important; background: transparent !important; }
+        [data-testid="stExpander"] svg, [data-testid="stExpander"] path, .streamlit-expanderHeader svg, .streamlit-expanderHeader path { fill: #374151 !important; color: #374151 !important; }
+        [data-testid="stExpander"] > div { background: #f9fafb !important; color: #111827 !important; border: 1px solid #d1d5db !important; }
+        .stButton > button, button[type="submit"] { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important; color: #fff !important; border: 1px solid #1d4ed8 !important; }
+        </style>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
         <style>
         /* Register Page Background */
         .stApp {
@@ -604,37 +621,6 @@ elif page == "register":
         }
         </style>
     """, unsafe_allow_html=True)
-    # W trybie jasnym: expander „Wymagania dotyczące hasła” – całe okno jasne (też zewnętrzny kontener)
-    if st.session_state.get("theme", "light") == "light":
-        st.markdown("""
-        <style>
-        /* Zewnętrzne pole (kontener wokół expandera) – jasne tło i szara obramówka cały czas */
-        div:has(> [data-testid="stExpander"]),
-        div:has(> div > [data-testid="stExpander"]) {
-            background: #f9fafb !important;
-            border: 1px solid #9ca3af !important;
-            border-radius: 8px !important;
-        }
-        .streamlit-expanderHeader, .streamlit-expanderHeader * {
-            background: #f3f4f6 !important;
-            color: #111827 !important;
-            border-color: #9ca3af !important;
-        }
-        [data-testid="stExpander"],
-        [data-testid="stExpander"] > div,
-        [data-testid="stExpander"] div {
-            background: #f9fafb !important;
-            border-color: #9ca3af !important;
-        }
-        [data-testid="stExpander"] [data-testid="stMarkdownContainer"],
-        [data-testid="stExpander"] .stMarkdown, [data-testid="stExpander"] p,
-        [data-testid="stExpander"] li, [data-testid="stExpander"] [data-testid="stMarkdownContainer"] * {
-            color: #111827 !important;
-            background: transparent !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-    
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.title(t(lang, "📝 Rejestracja", "📝 Register"))
@@ -911,8 +897,8 @@ else:
     user = st.session_state.user
     hide_default_streamlit_menu()
     
-    # Global CSS styling – dark or light theme (gold accents kept)
-    theme = st.session_state.get("theme", "light")
+    # Global CSS – ciemny lub jasny (każdy kolor ma stały odpowiednik)
+    theme = st.session_state.get("theme", "dark")
     if theme == "dark":
         st.markdown("""
         <style>
@@ -938,17 +924,19 @@ else:
         .stTextInput > div > div > input::placeholder, .stTextArea > div > div > textarea::placeholder { color: rgba(255, 255, 255, 0.6) !important; }
         .stTextInput > div > div > input:focus, .stTextArea > div > div > textarea:focus { border-color: var(--gold-primary); box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
         .stTextInput label, .stTextArea label { color: #ffffff !important; }
+        /* Ukrycie podpowiedzi "Press Enter to apply/submit" tylko w sidebarze (klucz API) */
+        [data-testid="stSidebar"] [data-testid="stInputHint"], [data-testid="stSidebar"] div[data-testid="stTextInput"] + div[class*="stCaption"], [data-testid="stSidebar"] p[data-testid="stCaption"] { display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; }
         /* Radio (tryb ciemny) – ten sam suwak co w jasnym: OFF = kropka lewo (ciemna), ON = kropka prawo (jasna, widoczna)
            BACKUP na cofnięcie: OFF right:82px, ON right:44px, pill 76x34px, label padding-right:108px, min-width .main:320px */
-        .stRadio > div { background: rgba(14, 17, 23, 0.6); border-radius: 10px; padding: 10px 12px; border: 1px solid var(--gold-medium); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); gap: 6px; display: flex; flex-direction: column; }
+        .stRadio > div { background: rgba(14, 17, 23, 0.6); border-radius: 10px; padding: 10px 12px; border: 1px solid var(--gold-medium); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); gap: 6px; display: flex; flex-direction: column; align-items: stretch; }
         .main .stRadio > div { width: 340px; max-width: 100%; min-width: 300px; }
-        .stRadio > div > label { position: relative !important; color: #ffffff !important; padding: 10px 14px 10px 14px !important; padding-right: 108px !important; border-radius: 8px !important; border: 1px solid var(--gold-medium) !important; margin: 0 !important; transition: all 0.2s ease !important; min-height: 52px !important; display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; cursor: pointer !important; background: linear-gradient(180deg, rgba(30,35,45,0.9) 0%, rgba(20,25,32,0.95) 100%) !important; box-shadow: 0 2px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05) !important; white-space: nowrap !important; }
+        .stRadio > div > label { position: relative !important; color: #ffffff !important; padding: 10px 14px 10px 14px !important; padding-right: 108px !important; width: 100% !important; box-sizing: border-box !important; border-radius: 8px !important; border: 1px solid var(--gold-medium) !important; margin: 0 !important; transition: all 0.2s ease !important; min-height: 52px !important; display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; cursor: pointer !important; background: linear-gradient(180deg, rgba(30,35,45,0.9) 0%, rgba(20,25,32,0.95) 100%) !important; box-shadow: 0 2px 4px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05) !important; white-space: nowrap !important; }
         .stRadio > div > label:hover { background: linear-gradient(180deg, rgba(40,45,55,0.9) 0%, rgba(30,35,45,0.95) 100%) !important; border-color: var(--gold-primary) !important; box-shadow: 0 3px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08) !important; }
         .stRadio > div > label[aria-checked="true"] { border-color: var(--gold-primary) !important; box-shadow: 0 2px 6px rgba(212,175,55,0.3), inset 0 1px 0 rgba(255,255,255,0.1) !important; }
         .stRadio > div > label::after { content: 'OFF' !important; position: absolute !important; right: 82px !important; top: 50% !important; transform: translateY(-50%) !important; font-size: 11px !important; font-weight: 800 !important; color: rgba(255,255,255,0.5) !important; letter-spacing: 0.5px !important; pointer-events: none !important; white-space: nowrap !important; }
         .stRadio > div > label[aria-checked="true"]::after, .stRadio > div > label:has(input:checked)::after { content: 'ON' !important; right: 44px !important; color: #D4AF37 !important; text-shadow: 0 0 8px rgba(212,175,55,0.8) !important; }
-        /* Suwak: tor ciemny; OFF = kropka lewo, ON = kropka prawo – ujednolicony rozmiar */
-        .stRadio > div > label > div:first-child, .stRadio > div > label[data-baseweb="radio"] > div:first-child { order: 2; margin-left: 16px !important; margin-right: 0 !important; width: 76px !important; height: 34px !important; min-width: 76px !important; min-height: 34px !important; max-width: 76px !important; border-radius: 17px !important; border: 2px solid var(--gold-medium) !important; background: rgba(20,25,32,0.9) !important; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4) !important; flex-shrink: 0; position: relative !important; }
+        /* Suwak: tor ciemny; stała szerokość 76px, bez rozciągania */
+        .stRadio > div > label > div:first-child, .stRadio > div > label[data-baseweb="radio"] > div:first-child { order: 2; margin-left: 16px !important; margin-right: 0 !important; width: 76px !important; height: 34px !important; min-width: 76px !important; max-width: 76px !important; flex: 0 0 76px !important; box-sizing: border-box !important; border-radius: 17px !important; border: 2px solid var(--gold-medium) !important; background: rgba(20,25,32,0.9) !important; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4) !important; flex-shrink: 0 !important; position: relative !important; }
         .stRadio > div > label > div:first-child::after, .stRadio > div > label[data-baseweb="radio"] > div:first-child::after { content: '' !important; position: absolute !important; width: 24px !important; height: 24px !important; border-radius: 50% !important; top: 3px !important; left: 3px !important; right: auto !important; background: #4b5563 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; transition: left 0.2s ease, right 0.2s ease, background 0.2s ease !important; z-index: 1 !important; }
         .stRadio > div > label[data-baseweb="radio"][aria-checked="true"] > div:first-child::after, .stRadio > div > label[aria-checked="true"] > div:first-child::after, .stRadio > div > label:has(input:checked) > div:first-child::after { left: auto !important; right: 3px !important; background: #D4AF37 !important; box-shadow: 0 0 8px rgba(212,175,55,0.6), 0 1px 3px rgba(0,0,0,0.3) !important; }
         .stRadio > div > label[data-baseweb="radio"][aria-checked="true"] > div:first-child, .stRadio > div > label[aria-checked="true"] > div:first-child { border-color: var(--gold-primary) !important; background: rgba(212,175,55,0.15) !important; }
@@ -982,8 +970,6 @@ else:
         button[key^="conv_"]:hover { background: rgba(212, 175, 55, 0.15) !important; border-color: #D4AF37 !important; color: #E5C158 !important; box-shadow: 0 3px 0 rgba(0,0,0,0.3), 0 6px 12px rgba(212,175,55,0.2), inset 0 1px 0 rgba(255,255,255,0.05) !important; transform: translateY(-1px); }
         button[key^="conv_"]:active { transform: translateY(2px) !important; box-shadow: 0 1px 0 rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.2), inset 0 2px 4px rgba(0,0,0,0.2) !important; }
         button[key^="conv_"][disabled] { background: rgba(212, 175, 55, 0.2) !important; border-color: #D4AF37 !important; color: #D4AF37 !important; opacity: 1 !important; box-shadow: 0 2px 0 rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05) !important; }
-        /* Hint "Naciśnij Ctrl+Enter" – ten sam złoty 3D co Zapisz/Usuń */
-        .ctrl-enter-hint { background: linear-gradient(180deg, #D4AF37 0%, #B8941F 50%, #9A7A1A 100%) !important; color: #0b0b0b !important; border: none !important; border-radius: 8px !important; box-shadow: 0 4px 0 #9A7A1A, 0 6px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2) !important; }
         /* Pole chatu – podniesione nad dolny czarny pasek */
         .stChatInputContainer { bottom: 28px !important; }
         </style>
@@ -991,116 +977,117 @@ else:
     else:
         st.markdown("""
         <style>
-        /* Tryb jasny – przyciemnione szarości, bez zlewania w biel; baner powitalny w niebieskim */
-        :root {
-            --text-primary: #111827;
-            --text-secondary: #6b7280;
-            --border: #d1d5db;
-            --border-strong: #9ca3af;
-            --bg: #e5e7eb;
-            --bg-subtle: #d1d5db;
-            --bg-hover: #e5e7eb;
-            --bg-card: #f3f4f6;
-        }
+        /* Tryb jasny – każdy kolor = stały odpowiednik z trybu ciemnego */
+        :root { --text-primary: #111827; --text-secondary: #6b7280; --border: #d1d5db; --border-strong: #9ca3af; --bg: #e5e7eb; --bg-card: #f3f4f6; }
         .stApp { background: var(--bg) !important; }
         h1, h2, h3, p, span, label, a { text-shadow: none !important; }
         [data-testid="stSidebar"] { background: var(--bg-card) !important; border-right: 1px solid var(--border) !important; }
         [data-testid="stSidebar"] * { color: var(--text-primary) !important; text-shadow: none !important; }
-        [data-testid="stSidebar"] label, [data-testid="stSidebar"] p, [data-testid="stSidebar"] span { color: var(--text-primary) !important; }
-        [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"], [data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] * { color: inherit !important; }
-        [data-testid="stSidebar"] .stSuccess, [data-testid="stSidebar"] .stSuccess * { color: #1e40af !important; background: #dbeafe !important; background-color: #dbeafe !important; border-left-color: #2563eb !important; }
-        [data-testid="stSidebar"] .stInfo, [data-testid="stSidebar"] .stInfo * { color: var(--text-primary) !important; }
+        /* Alerty w sidebarze – zachowaj kolory semantyczne (success/info/warning/error) */
+        [data-testid="stSidebar"] .stAlert, [data-testid="stSidebar"] .stSuccess, [data-testid="stSidebar"] .stSuccess * { color: #166534 !important; }
+        [data-testid="stSidebar"] .stInfo, [data-testid="stSidebar"] .stInfo * { color: #1e40af !important; }
         [data-testid="stSidebar"] .stWarning, [data-testid="stSidebar"] .stWarning * { color: #92400e !important; }
         [data-testid="stSidebar"] .stError, [data-testid="stSidebar"] .stError * { color: #b91c1c !important; }
-        [data-testid="stSidebar"] input { color: var(--text-primary) !important; background: var(--bg) !important; }
-        [data-testid="stSidebar"] hr { border-color: var(--border) !important; }
-        .stButton > button, [data-testid="stSidebar"] .stButton > button, [data-testid="stSidebar"] .stForm button, [data-testid="stSidebar"] form button, [data-testid="stSidebar"] button[type="submit"] { color: #111827 !important; background: linear-gradient(180deg, #e5e7eb 0%, #d1d5db 50%, #9ca3af 100%) !important; font-weight: 600 !important; border: 1px solid #9ca3af !important; border-radius: 8px !important; font-size: 14px !important; padding: 10px 20px !important; box-shadow: 0 2px 0 #9ca3af, 0 4px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8) !important; transition: all 0.15s ease !important; }
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 { color: var(--text-primary) !important; }
+        .stButton > button, [data-testid="stSidebar"] .stButton > button, [data-testid="stSidebar"] .stForm button, [data-testid="stSidebar"] form button, [data-testid="stSidebar"] button[type="submit"] { color: #111827 !important; background: linear-gradient(180deg, #e5e7eb 0%, #d1d5db 50%, #9ca3af 100%) !important; border: 1px solid #9ca3af !important; border-radius: 8px !important; font-weight: 600 !important; font-size: 14px !important; padding: 10px 20px !important; box-shadow: 0 2px 0 #9ca3af, 0 4px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8) !important; }
         .stButton > button:hover, [data-testid="stSidebar"] .stButton > button:hover, [data-testid="stSidebar"] .stForm button:hover, [data-testid="stSidebar"] form button:hover { background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%) !important; color: #111827 !important; border-color: #6b7280 !important; box-shadow: 0 2px 0 #9ca3af, 0 6px 12px rgba(0,0,0,0.1), inset 0 1px 0 #fff !important; transform: translateY(-1px); }
         .stButton > button:active, [data-testid="stSidebar"] .stButton > button:active, [data-testid="stSidebar"] .stForm button:active { transform: translateY(2px) !important; box-shadow: 0 1px 0 #9ca3af, 0 2px 6px rgba(0,0,0,0.1), inset 0 2px 4px rgba(0,0,0,0.08) !important; }
         .stButton > button[kind="secondary"], button[kind="secondary"] { background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%) !important; color: var(--text-primary) !important; border: 1px solid var(--border-strong) !important; border-radius: 8px !important; box-shadow: 0 2px 0 #d1d5db, 0 4px 8px rgba(0,0,0,0.08), inset 0 1px 0 #fff !important; }
         .stButton > button[kind="secondary"]:hover, button[kind="secondary"]:hover { background: linear-gradient(180deg, #fff 0%, #f3f4f6 100%) !important; box-shadow: 0 2px 0 #d1d5db, 0 6px 12px rgba(0,0,0,0.1), inset 0 1px 0 #fff !important; transform: translateY(-1px); }
-        .main .block-container { color: var(--text-primary); background: #f9fafb !important; }
-        .main .element-container { background: #f9fafb !important; color: #111827 !important; }
-        p, span, li, div[data-testid="stMarkdownContainer"], div[data-testid="stMarkdownContainer"] * { color: var(--text-primary) !important; text-shadow: none !important; }
-        .main .element-container [data-testid="stMarkdownContainer"], .main [data-testid="stMarkdownContainer"] { background: #f9fafb !important; color: #111827 !important; }
-        .main .element-container [data-testid="stMarkdownContainer"] * { color: #111827 !important; background: transparent !important; }
-        .main .stMarkdown, .main div.stMarkdown { background: #f9fafb !important; color: #111827 !important; }
-        .main .stMarkdown *, .main div.stMarkdown * { color: #111827 !important; background: transparent !important; }
-        .main div:has(> [data-testid="stMarkdownContainer"]) { background: #f9fafb !important; color: #111827 !important; }
-        .main div:has(> [data-testid="stMarkdownContainer"]) * { color: #111827 !important; background: transparent !important; }
-        .main .element-container > div { background: #f9fafb !important; }
-        .main pre, .main code, .main .stCodeBlock { background: #f3f4f6 !important; color: #111827 !important; border: 1px solid #d1d5db !important; }
-        [data-testid="stCodeBlock"], .main [data-testid="stCodeBlock"], section[data-testid="main"] [data-testid="stCodeBlock"] { background: #f3f4f6 !important; color: #111827 !important; border: 1px solid #d1d5db !important; }
-        [data-testid="stCodeBlock"] pre, [data-testid="stCodeBlock"] code, [data-testid="stCodeBlock"] * { background: #f3f4f6 !important; color: #111827 !important; border-color: #d1d5db !important; }
-        section[data-testid="main"] .block-container div:has(pre), section[data-testid="main"] .block-container div:has([data-testid="stCodeBlock"]) { background: #f9fafb !important; }
-        section[data-testid="main"] .block-container div:has(pre) pre, section[data-testid="main"] .block-container div:has(pre) code { background: #f3f4f6 !important; color: #111827 !important; }
-        .main [data-testid="stVerticalBlock"] { background: transparent !important; }
-        h1, h2, h3 { color: var(--text-primary) !important; font-weight: 700; text-shadow: none !important; }
-        [data-testid="stMetricValue"] { color: var(--text-primary) !important; font-weight: 700; }
-        [data-testid="stMetricLabel"] { color: var(--text-secondary) !important; }
         .stTextInput > div > div > input, .stTextArea > div > div > textarea { background: var(--bg-card) !important; border: 1px solid var(--border); border-radius: 8px; color: #111827 !important; }
         .stTextInput > div > div > input::placeholder, .stTextArea > div > div > textarea::placeholder { color: #6b7280 !important; }
         .stTextInput > div > div > input:focus, .stTextArea > div > div > textarea:focus { border-color: #9ca3af; box-shadow: 0 0 0 2px rgba(0,0,0,0.05); }
         .stTextInput label, .stTextArea label { color: var(--text-primary) !important; }
-        .stNumberInput label, .stNumberInput [data-testid="stMarkdownContainer"], [data-testid="stNumberInput"] label, [data-testid="stNumberInput"] [data-testid="stMarkdownContainer"] { color: #111827 !important; }
-        .stNumberInput input, .stNumberInput > div > div input, [data-testid="stNumberInput"] input, [data-testid="stNumberInput"] input[type="number"] { background: #f9fafb !important; color: #111827 !important; border: 1px solid #d1d5db !important; }
-        .stNumberInput > div > div, [data-testid="stNumberInput"] > div > div { background: #f9fafb !important; border: 1px solid #d1d5db !important; border-radius: 8px !important; }
-        .stRadio > div { background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%); border-radius: 10px; padding: 10px 12px; border: 1px solid var(--border); box-shadow: inset 0 2px 4px rgba(0,0,0,0.04); gap: 6px; display: flex; flex-direction: column; }
+        /* Ukrycie podpowiedzi "Press Enter to apply/submit" tylko w sidebarze (klucz API) – nie ukrywaj captionów w main */
+        [data-testid="stSidebar"] [data-testid="stInputHint"], [data-testid="stSidebar"] div[data-testid="stTextInput"] + div[class*="stCaption"], [data-testid="stSidebar"] p[data-testid="stCaption"] { display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; }
+        .stRadio > div { background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%); border-radius: 10px; padding: 10px 12px; border: 1px solid var(--border); box-shadow: inset 0 2px 4px rgba(0,0,0,0.04); gap: 6px; display: flex; flex-direction: column; align-items: stretch; }
         .main .stRadio > div { width: 340px; max-width: 100%; min-width: 300px; }
-        .stRadio > div > label { position: relative !important; color: var(--text-primary) !important; padding: 10px 14px 10px 14px !important; padding-right: 108px !important; border-radius: 8px !important; border: 1px solid #d1d5db !important; margin: 0 !important; transition: all 0.2s ease !important; min-height: 52px !important; display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; cursor: pointer !important; background: linear-gradient(180deg, #fff 0%, #f9fafb 100%) !important; box-shadow: 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8) !important; white-space: nowrap !important; }
+        .stRadio > div > label { position: relative !important; color: var(--text-primary) !important; padding: 10px 14px 10px 14px !important; padding-right: 108px !important; width: 100% !important; box-sizing: border-box !important; border-radius: 8px !important; border: 1px solid #d1d5db !important; margin: 0 !important; min-height: 52px !important; display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; cursor: pointer !important; background: linear-gradient(180deg, #fff 0%, #f9fafb 100%) !important; box-shadow: 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8) !important; white-space: nowrap !important; }
         .stRadio > div > label:hover { background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%) !important; border-color: #9ca3af !important; }
         .stRadio > div > label[aria-checked="true"] { background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%) !important; border-color: #2563eb !important; box-shadow: 0 2px 6px rgba(37,99,235,0.2), inset 0 1px 0 rgba(255,255,255,0.5) !important; }
         .stRadio > div > label::after { content: 'OFF' !important; position: absolute !important; right: 82px !important; top: 50% !important; transform: translateY(-50%) !important; font-size: 11px !important; font-weight: 800 !important; color: #9ca3af !important; letter-spacing: 0.5px !important; pointer-events: none !important; white-space: nowrap !important; }
         .stRadio > div > label[aria-checked="true"]::after, .stRadio > div > label:has(input:checked)::after { content: 'ON' !important; right: 44px !important; color: #1e40af !important; }
-        .stRadio > div > label > div:first-child, .stRadio > div > label[data-baseweb="radio"] > div:first-child { order: 2; margin-left: 16px !important; margin-right: 0 !important; width: 76px !important; height: 34px !important; min-width: 76px !important; min-height: 34px !important; max-width: 76px !important; border-radius: 17px !important; border: 2px solid #9ca3af !important; background: #d1d5db !important; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1) !important; flex-shrink: 0; position: relative !important; }
+        .stRadio > div > label > div:first-child, .stRadio > div > label[data-baseweb="radio"] > div:first-child { order: 2; margin-left: 16px !important; margin-right: 0 !important; width: 76px !important; height: 34px !important; min-width: 76px !important; max-width: 76px !important; flex: 0 0 76px !important; box-sizing: border-box !important; border-radius: 17px !important; border: 2px solid #9ca3af !important; background: #d1d5db !important; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1) !important; flex-shrink: 0 !important; position: relative !important; }
         .stRadio > div > label > div:first-child::after, .stRadio > div > label[data-baseweb="radio"] > div:first-child::after { content: '' !important; position: absolute !important; width: 24px !important; height: 24px !important; border-radius: 50% !important; top: 3px !important; left: 3px !important; right: auto !important; background: #f3f4f6 !important; box-shadow: 0 1px 2px rgba(0,0,0,0.15) !important; transition: left 0.2s ease, right 0.2s ease, background 0.2s ease !important; z-index: 1 !important; }
         .stRadio > div > label[aria-checked="true"] > div:first-child::after, .stRadio > div > label:has(input:checked) > div:first-child::after { left: auto !important; right: 3px !important; background: #111827 !important; box-shadow: 0 1px 4px rgba(0,0,0,0.4) !important; }
         .stRadio > div > label[aria-checked="true"] > div:first-child, .stRadio > div > label[aria-checked="true"] > div:first-child { border-color: #2563eb !important; background: #93c5fd !important; }
         .stCheckbox > label { color: var(--text-primary) !important; padding: 8px 0 !important; min-height: 44px !important; display: inline-flex !important; align-items: center !important; cursor: pointer !important; }
         .stCheckbox > label > div:first-child { width: 22px !important; height: 22px !important; min-width: 22px !important; min-height: 22px !important; border-radius: 6px !important; border: 2px solid var(--border-strong) !important; margin-right: 12px !important; box-shadow: inset 0 1px 2px rgba(0,0,0,0.08) !important; }
-        .stCheckbox > label[aria-checked="true"] > div:first-child, .stCheckbox > label:has(input:checked) > div:first-child { background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%) !important; border-color: #2563eb !important; box-shadow: 0 1px 2px rgba(0,0,0,0.2), inset 0 0 0 2px #fff, inset 0 1px 0 rgba(255,255,255,0.3) !important; }
+        .stCheckbox > label[data-baseweb="checkbox"][aria-checked="true"] > div:first-child, .stCheckbox > label:has(input:checked) > div:first-child { background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%) !important; border-color: #2563eb !important; box-shadow: 0 1px 2px rgba(0,0,0,0.2), inset 0 0 0 2px #fff, inset 0 1px 0 rgba(255,255,255,0.3) !important; }
         .stFileUploader > div { background: var(--bg-card); border: 2px dashed var(--border-strong); border-radius: 8px; }
+        [data-testid="stMetricValue"] { color: var(--text-primary) !important; font-weight: 700; }
+        [data-testid="stMetricLabel"] { color: var(--text-secondary) !important; }
+        h1, h2, h3 { color: var(--text-primary) !important; font-weight: 700; text-shadow: none !important; }
         .stInfo { background: #eff6ff; border-left: 4px solid #3b82f6; color: var(--text-primary) !important; }
         .stInfo * { color: var(--text-primary) !important; }
-        .stSuccess, div.stSuccess, .element-container .stSuccess, [data-testid="stAlert"].stSuccess, .stSuccess div, .stSuccess p, .stSuccess span, .stSuccess * { background: #dbeafe !important; background-color: #dbeafe !important; border-left: 4px solid #2563eb !important; border-left-color: #2563eb !important; color: #1e40af !important; }
-        .stSuccess [data-testid="stMarkdownContainer"], .stSuccess [data-testid="stMarkdownContainer"] * { color: #1e40af !important; background: transparent !important; background-color: transparent !important; }
-        div[data-testid="stAlert"].stSuccess, div[data-testid="stAlert"].stSuccess div { background: #dbeafe !important; background-color: #dbeafe !important; border-left-color: #2563eb !important; color: #1e40af !important; }
+        .stSuccess { background: #dbeafe; border-left: 4px solid #2563eb; color: #1e40af !important; }
+        .stSuccess * { color: #1e40af !important; }
         .stWarning { background: #fffbeb; border-left: 4px solid #f59e0b; color: #92400e !important; }
         .stWarning * { color: #92400e !important; }
         .stError { background: #fef2f2; border-left: 4px solid #ef4444; color: #b91c1c !important; }
         .stError * { color: #b91c1c !important; }
-        .stCodeBlock, [data-testid="stCodeBlock"] { background: #f3f4f6 !important; color: #111827 !important; border: 1px solid #d1d5db !important; }
-        .stCodeBlock *, [data-testid="stCodeBlock"] * { background: transparent !important; color: #111827 !important; }
+        /* 2) Jasny wygląd bloków kodu – markdown ``` oraz st.code (m.in. wygenerowane testy) */
+        pre, code, pre code { background: var(--bg-card) !important; color: var(--text-primary) !important; }
+        .stMarkdown pre { background: var(--bg-card) !important; border: 1px solid var(--border) !important; border-radius: 10px !important; padding: 14px 16px !important; overflow-x: auto !important; }
+        div[data-testid="stCodeBlock"] pre, div[data-testid="stCodeBlock"] code, .stCodeBlock pre, .stCodeBlock code { background: var(--bg-card) !important; color: var(--text-primary) !important; border: 1px solid var(--border) !important; border-radius: 10px !important; }
+        .stCodeBlock, [data-testid="stCodeBlock"] { background: var(--bg-card) !important; border: 1px solid var(--border) !important; border-radius: 8px !important; color: var(--text-primary) !important; }
+        .stCodeBlock *, [data-testid="stCodeBlock"] * { background: transparent !important; color: var(--text-primary) !important; }
         .streamlit-expanderHeader { background: #f3f4f6 !important; border: 1px solid #9ca3af !important; border-radius: 8px; color: #111827 !important; }
         .streamlit-expanderHeader * { color: #111827 !important; background: transparent !important; }
+        [data-testid="stExpander"] svg, [data-testid="stExpander"] path, .streamlit-expanderHeader svg, .streamlit-expanderHeader path { fill: #374151 !important; color: #374151 !important; }
         div:has(> [data-testid="stExpander"]), div:has(> div > [data-testid="stExpander"]) { background: #f9fafb !important; border: 1px solid #9ca3af !important; border-radius: 8px !important; }
         [data-testid="stExpander"], [data-testid="stExpander"] > div, [data-testid="stExpander"] div { background: #f9fafb !important; border-color: #9ca3af !important; }
         [data-testid="stExpander"] [data-testid="stMarkdownContainer"], [data-testid="stExpander"] .stMarkdown, [data-testid="stExpander"] p, [data-testid="stExpander"] li { color: #111827 !important; background: transparent !important; }
         [data-testid="stExpander"] [data-testid="stMarkdownContainer"] * { color: #111827 !important; background: transparent !important; }
         [data-testid="stChatMessage"] { background: var(--bg-card); border: 1px solid var(--border); border-left: 4px solid var(--border-strong); border-radius: 8px; padding: 10px; color: var(--text-primary) !important; }
         [data-testid="stChatMessage"] * { color: inherit !important; }
-        .stChatInputContainer { bottom: 28px !important; }
-        .stChatInputContainer, .stChatInputContainer > div { background: var(--bg-card) !important; border-color: var(--border-strong) !important; }
-        [data-testid="stChatInput"] { background: var(--bg-card) !important; color: #111827 !important; caret-color: #111827 !important; border: 2px solid #374151 !important; }
-        [data-testid="stChatInput"]::placeholder { color: #6b7280 !important; }
+        .stNumberInput > div > div, [data-testid="stNumberInput"] > div, [data-testid="stNumberInput"] input, .stNumberInput input { background: #f9fafb !important; color: #111827 !important; border: 1px solid #d1d5db !important; }
+        [data-testid="stNumberInput"] input::placeholder { color: #6b7280 !important; }
+        [data-testid="stNumberInput"] button, [data-testid="stNumberInput"] [data-baseweb="button"], .stNumberInput button { background: #ffffff !important; color: #111827 !important; border: 1px solid #d1d5db !important; }
+        [data-testid="stNumberInput"] button svg, [data-testid="stNumberInput"] button path, .stNumberInput button svg, .stNumberInput button path { fill: #374151 !important; color: #374151 !important; }
+        [data-testid="stTextInput"] button, [data-testid="stTextInput"] [data-baseweb="button"], .stTextInput button { background: #ffffff !important; color: #111827 !important; border: 1px solid #d1d5db !important; }
+        [data-testid="stTextInput"] button svg, [data-testid="stTextInput"] button path, .stTextInput button svg, .stTextInput button path { fill: #374151 !important; color: #374151 !important; }
+        button[title="Show password text"], button[title*="password"], [data-testid="stTextInput"] > div > div > div { background: #ffffff !important; color: #111827 !important; border-color: #d1d5db !important; }
+        [data-testid="stTextInput"] > div > div { background: #ffffff !important; border: 1px solid #d1d5db !important; }
+        [data-testid="stTextInput"] input ~ div, [data-testid="stTextInput"] [data-baseweb="input-suffix"] { background: #ffffff !important; color: #111827 !important; border: none !important; }
+        [data-testid="stTextInput"] > div > div > div svg, [data-testid="stTextInput"] > div > div > div path, [data-testid="stTextInput"] input ~ div svg, [data-testid="stTextInput"] input ~ div path { fill: #374151 !important; color: #374151 !important; }
         .stSelectbox > div > div { background: var(--bg-card); border: 2px solid var(--border); border-radius: 8px; color: #111827 !important; }
         .stSelectbox > div > div:hover, .stSelectbox > div > div:focus-within { border-color: var(--border-strong); }
-        [data-baseweb="select"] [role="listbox"], [data-baseweb="menu"], [role="listbox"], [role="listbox"] div, ul[role="listbox"] li, [data-id="stSelectbox"] [role="listbox"] * { background: #ffffff !important; color: #111827 !important; }
-        [role="option"], [role="listbox"] [role="option"], li[role="option"], body [role="option"] { background: #ffffff !important; color: #111827 !important; }
-        [data-baseweb="popover"], [data-baseweb="popover"] * { background: #ffffff !important; color: #111827 !important; }
-        [data-baseweb="menu"] li, [data-baseweb="menu"] div, [data-baseweb="menu"] span { background: #ffffff !important; color: #111827 !important; }
+        .stSelectbox svg, .stSelectbox path, [data-baseweb="select"] svg, [data-baseweb="select"] path { fill: #374151 !important; color: #374151 !important; }
+        [data-baseweb="select"] [role="listbox"], [data-baseweb="menu"], [role="listbox"], [role="listbox"] div, ul[role="listbox"] li { background: #ffffff !important; color: #111827 !important; }
+        [role="option"], [role="listbox"] [role="option"], li[role="option"] { background: #ffffff !important; color: #111827 !important; }
         .stTabs [data-baseweb="tab-list"] { background: var(--bg-card); border-bottom: 1px solid var(--border); }
         .stTabs [data-baseweb="tab"] { color: var(--text-secondary) !important; }
         .stTabs [aria-selected="true"] { color: var(--text-primary) !important; border-bottom: 2px solid var(--text-primary); }
+        /* Treść zakładek (np. Zarządzanie użytkownikami – Dodaj użytkownika) bez białej karty */
+        .main .stTabs, .main .stTabs > div { background: transparent !important; }
+        .main .stTabs [data-baseweb="tab-panel"], .main .stTabs [data-baseweb="tab-content"], .main .stTabs div[role="tabpanel"] { background: transparent !important; }
+        .main .stTabs .element-container, .main .stTabs [data-testid="stVerticalBlock"] { background: transparent !important; }
         .stDataFrame { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; }
         hr { border-color: var(--border); }
         a { color: var(--text-primary) !important; text-decoration: underline; text-decoration-color: var(--border-strong); }
         a:hover { color: #374151 !important; text-decoration-color: #374151; }
         .stSpinner > div { border-color: var(--border-strong) transparent transparent transparent; }
-        button[key^="conv_"] { background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%) !important; color: var(--text-primary) !important; border: 1px solid #9ca3af !important; border-radius: 8px !important; font-weight: 500 !important; text-align: left !important; padding: 10px 12px !important; box-shadow: 0 2px 0 #9ca3af, 0 4px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8) !important; transition: all 0.15s ease !important; }
+        button[key^="conv_"] { background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%) !important; color: var(--text-primary) !important; border: 1px solid #9ca3af !important; border-radius: 8px !important; font-weight: 500 !important; text-align: left !important; padding: 10px 12px !important; box-shadow: 0 2px 0 #9ca3af, 0 4px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8) !important; }
         button[key^="conv_"]:hover { background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%) !important; border-color: var(--border-strong) !important; color: var(--text-primary) !important; box-shadow: 0 2px 0 #9ca3af, 0 6px 12px rgba(0,0,0,0.1), inset 0 1px 0 #fff !important; transform: translateY(-1px); }
         button[key^="conv_"]:active { transform: translateY(2px) !important; box-shadow: 0 1px 0 #9ca3af, 0 2px 6px rgba(0,0,0,0.08), inset 0 2px 4px rgba(0,0,0,0.08) !important; }
-        button[key^="conv_"][disabled] { background: var(--bg-subtle) !important; border-color: var(--border) !important; color: var(--text-secondary) !important; opacity: 1 !important; box-shadow: 0 1px 0 #d1d5db, inset 0 1px 0 rgba(255,255,255,0.5) !important; }
+        button[key^="conv_"][disabled] { background: var(--bg) !important; border-color: var(--border) !important; color: var(--text-secondary) !important; opacity: 1 !important; box-shadow: 0 1px 0 #d1d5db, inset 0 1px 0 rgba(255,255,255,0.5) !important; }
+        /* 1) Ujednolicenie tła main area – usuwa białą „kartkę” (np. Tłumaczenie kodu) */
+        .main .block-container { background: var(--bg) !important; color: var(--text-primary) !important; }
+        .main .block-container > div, .main [data-testid="stVerticalBlock"], .main [data-testid="column"] { background: transparent !important; }
+        .main .element-container { background: transparent !important; color: var(--text-primary) !important; }
+        .main .stMarkdown, .main div.stMarkdown, .main [data-testid="stMarkdownContainer"] { background: transparent !important; color: var(--text-primary) !important; }
+        p, span, li, div[data-testid="stMarkdownContainer"], div[data-testid="stMarkdownContainer"] * { color: var(--text-primary) !important; text-shadow: none !important; }
+        .main .element-container [data-testid="stMarkdownContainer"], .main [data-testid="stMarkdownContainer"] { background: transparent !important; color: #111827 !important; }
+        .main .element-container [data-testid="stMarkdownContainer"] * { color: #111827 !important; background: transparent !important; }
+        .main .stMarkdown *, .main div.stMarkdown * { color: #111827 !important; background: transparent !important; }
+        /* Kontenery wokół „Wygenerowane testy jednostkowe” (markdown z pre/code) – tylko tryb jasny, bez białego pudełka */
+        .main div:has([data-testid="stMarkdownContainer"]), .main div:has(pre), .main div:has(.stCodeBlock) { background: transparent !important; }
+        /* Markdown output – nie rób białej karty po wygenerowaniu (np. testy jednostkowe) */
+        [data-testid="stMarkdownContainer"], .stMarkdown, .stMarkdown > div { background: transparent !important; }
+        /* Same bloki kodu (``` ... ```) w markdown – jasne tło, czytelne */
+        [data-testid="stMarkdownContainer"] pre, [data-testid="stMarkdownContainer"] code { background: #f3f4f6 !important; color: #111827 !important; border: 1px solid #d1d5db !important; border-radius: 10px !important; }
+        .stChatInputContainer { bottom: 28px !important; }
         </style>
         """, unsafe_allow_html=True)
     
@@ -1111,8 +1098,8 @@ else:
     # ==========================================================================
     
     if page == "dashboard":
-        # Kolory dashboardu zależne od motywu (jasny = szarości, ciemny = złoty)
-        _theme = st.session_state.get("theme", "light")
+        # Kolory dashboardu zależne od motywu
+        _theme = st.session_state.get("theme", "dark")
         if _theme == "light":
             _d_title, _d_border, _d_text = "#1f2937", "#9ca3af", "#111827"
             _d_bg, _d_border_left = "#e5e7eb", "#9ca3af"
@@ -1166,8 +1153,10 @@ else:
         
         st.markdown("---")
         
-        # Welcome message – w trybie jasnym custom niebieski boks (Streamlit st.success ma zielone tło w DOM)
+        # Welcome message – w jasnym: niebieski boks
         if _theme == "light":
+            _welcome = t(lang, f"Witaj, **{user['username']}** ({user['role']})", f"Welcome, **{user['username']}** ({user['role']})")
+            _welcome_html = _welcome.replace("**", "<strong>", 1).replace("**", "</strong>", 1)
             st.markdown(f"""
             <div style="
                 background: #dbeafe;
@@ -1179,7 +1168,7 @@ else:
                 font-weight: 500;
                 margin: 0 0 1rem 0;
             ">
-                Witaj, <strong>{user['username']}</strong> ({user['role']})
+                {_welcome_html}
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -1211,6 +1200,9 @@ else:
             }
             </style>
             """, unsafe_allow_html=True)
+            _d_inner_bg = "#f3f4f6"
+            _d_inner_shadow = "0 1px 3px rgba(0,0,0,0.08)"
+            _d_outer_bg = "#d1d5db"
         else:
             st.markdown("""
             <style>
@@ -1230,10 +1222,9 @@ else:
             }
             </style>
             """, unsafe_allow_html=True)
-        
-        _d_inner_bg = "#f3f4f6" if _theme == "light" else "linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(255, 215, 0, 0.05) 100%)"
-        _d_inner_shadow = "0 1px 3px rgba(0,0,0,0.08)" if _theme == "light" else "0 4px 15px rgba(212, 175, 55, 0.2)"
-        _d_outer_bg = "#d1d5db" if _theme == "light" else "linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(184, 148, 31, 0.1) 100%)"
+            _d_inner_bg = "linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(255, 215, 0, 0.05) 100%)"
+            _d_inner_shadow = "0 4px 15px rgba(212, 175, 55, 0.2)"
+            _d_outer_bg = "linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(184, 148, 31, 0.1) 100%)"
         st.markdown(f"""
         <div style="
             background: {_d_outer_bg};
@@ -1624,52 +1615,36 @@ else:
             
             st.markdown("---")
             
-            # Voice input - Real-time recording only
-            st.markdown("""
-            <style>
-            .voice-input-container {
-                background: transparent;
-                border: none;
-                border-radius: 0;
-                padding: 0;
-                margin: 20px 0;
-                box-shadow: none;
-            }
-            .voice-input-title {
-                color: #FFD700;
-                font-size: 1.5em;
-                font-weight: bold;
-                margin: 0 0 20px 0;
-                text-align: center;
-            }
-            .voice-input-instructions {
-                color: #FFD700;
-                text-align: center;
-                font-size: 0.95em;
-                margin-top: 15px;
-                margin-bottom: 30px;
-                opacity: 0.9;
-            }
-            .audio-player-container {
-                margin: 20px 0;
-                padding: 15px;
-                background: rgba(255, 215, 0, 0.05);
-                border-radius: 10px;
-                border: 1px solid rgba(255, 215, 0, 0.3);
-            }
-            </style>
-            """, unsafe_allow_html=True)
+            # Voice input - Real-time recording only (kolory zależne od motywu)
+            _chat_theme = st.session_state.get("theme", "dark")
+            if _chat_theme == "light":
+                _voice_title_color = "#1f2937"
+                _voice_inst_color = "#374151"
+                _voice_css = f"""
+                .voice-input-container {{ background: transparent; border: none; padding: 0; margin: 20px 0; }}
+                .voice-input-title {{ color: {_voice_title_color}; font-size: 1.5em; font-weight: bold; margin: 0 0 20px 0; text-align: center; }}
+                .voice-input-instructions {{ color: {_voice_inst_color}; text-align: center; font-size: 0.95em; margin-top: 15px; margin-bottom: 30px; }}
+                .audio-player-container {{ margin: 20px 0; padding: 15px; background: #f3f4f6; border-radius: 10px; border: 1px solid #9ca3af; }}
+                """
+                _mic_neutral = "#374151"
+            else:
+                _voice_css = """
+                .voice-input-container { background: transparent; border: none; padding: 0; margin: 20px 0; }
+                .voice-input-title { color: #FFD700; font-size: 1.5em; font-weight: bold; margin: 0 0 20px 0; text-align: center; }
+                .voice-input-instructions { color: #FFD700; text-align: center; font-size: 0.95em; margin-top: 15px; margin-bottom: 30px; opacity: 0.9; }
+                .audio-player-container { margin: 20px 0; padding: 15px; background: rgba(255, 215, 0, 0.05); border-radius: 10px; border: 1px solid rgba(255, 215, 0, 0.3); }
+                """
+                _mic_neutral = "#6c757d"
+            st.markdown(f"<style>{_voice_css}</style>", unsafe_allow_html=True)
             
             st.markdown('<div class="voice-input-container">', unsafe_allow_html=True)
-            # Title inside the container at the top
             st.markdown(f'<div class="voice-input-title">{t(lang, "Wprowadzanie głosowe", "Voice Input")}</div>', unsafe_allow_html=True)
             
-            # Real-time audio recording - centered
             st.markdown('<div style="display: flex; justify-content: center; align-items: center; margin: 20px 0;">', unsafe_allow_html=True)
             audio_bytes = audio_recorder(
                 text="",
                 recording_color="#FFD700",
-                neutral_color="#6c757d",
+                neutral_color=_mic_neutral,
                 icon_name="microphone",
                 icon_size="3x",
                 pause_threshold=2.0
@@ -1840,26 +1815,23 @@ else:
 
         # Chat input
         prompt = st.chat_input(t(lang, "Napisz wiadomość...", "Type a message..."))
-        # CSS musi być poniżej chat_input – inaczej nie działa (podniesienie nad dolny pasek + styl wg motywu)
-        _chat_theme = st.session_state.get("theme", "light")
-        if _chat_theme == "light":
-            st.markdown("""
-            <style>
+        # CSS – pozycja + styl zależny od motywu (jasny: jasne tło, ciemny tekst)
+        _chat_input_theme = st.session_state.get("theme", "dark")
+        if _chat_input_theme == "light":
+            _chat_input_css = """
             .stChatInputContainer, .stChatFloatingInputContainer, section[data-testid="stChatInputContainer"] { position: fixed !important; bottom: 28px !important; }
-            .stChatInputContainer > div, .stChatFloatingInputContainer > div { background: #f3f4f6 !important; border: 2px solid #374151 !important; border-radius: 8px !important; }
-            [data-testid="stChatInput"] { background: #f9fafb !important; color: #111827 !important; caret-color: #111827 !important; border: 2px solid #374151 !important; border-radius: 8px !important; }
+            .stChatInputContainer > div, .stChatFloatingInputContainer > div { background: #ffffff !important; border: 2px solid #9ca3af !important; border-radius: 8px !important; }
+            [data-testid="stChatInput"] { background: #f9fafb !important; color: #111827 !important; caret-color: #111827 !important; border: 1px solid #d1d5db !important; border-radius: 8px !important; }
             [data-testid="stChatInput"]::placeholder { color: #6b7280 !important; }
-            </style>
-            """, unsafe_allow_html=True)
+            """
         else:
-            st.markdown("""
-            <style>
+            _chat_input_css = """
             .stChatInputContainer, .stChatFloatingInputContainer, section[data-testid="stChatInputContainer"] { position: fixed !important; bottom: 28px !important; }
             .stChatInputContainer > div, .stChatFloatingInputContainer > div { background: rgba(14, 17, 23, 0.95) !important; border: 2px solid rgba(212, 175, 55, 0.5) !important; border-radius: 8px !important; }
             [data-testid="stChatInput"] { background: rgba(14, 17, 23, 0.9) !important; color: #ffffff !important; caret-color: #ffffff !important; border: 2px solid rgba(212, 175, 55, 0.4) !important; border-radius: 8px !important; }
             [data-testid="stChatInput"]::placeholder { color: rgba(255, 255, 255, 0.6) !important; }
-            </style>
-            """, unsafe_allow_html=True)
+            """
+        st.markdown(f"<style>{_chat_input_css}</style>", unsafe_allow_html=True)
         
         # Handle transcribed text from voice input
         if "transcribed_text" in st.session_state and st.session_state.transcribed_text:
@@ -1930,7 +1902,7 @@ else:
     # ==========================================================================
     
     elif page == "image_translate":
-        # Title and image side by side with vertical alignment
+        # Układ jak na stronie Konwersja między językami (text_translate)
         st.markdown("""
             <style>
             .image-wrapper-image-translate img {
@@ -1946,7 +1918,6 @@ else:
             st.title(t(lang, "Tłumaczenie i wyjaśnienie kodu", "Code Translation and Explanation"))
         with col_image:
             st.markdown('<div class="image-wrapper-image-translate">', unsafe_allow_html=True)
-            # Display image on the right side - same size as other pages
             import os
             if os.path.exists("2.png"):
                 st.image("2.png", width=700, use_container_width=False)
@@ -2039,11 +2010,16 @@ else:
         uploaded_file = None
 
         if input_method == "paste_text":
-            # Po rerunie (np. zmiana motywu) przywróć kod do pola, żeby wynik się znów wyświetlił
-            if st.session_state.get("paste_last_result") and st.session_state["paste_last_result"].get("code"):
+            # Po rerunie (np. zmiana motywu) przywróć kod do pola, żeby wyniki się znów wyświetliły
+            last_code = None
+            if st.session_state.get("paste_last_result_explain") and st.session_state["paste_last_result_explain"].get("code"):
+                last_code = st.session_state["paste_last_result_explain"]["code"]
+            elif st.session_state.get("paste_last_result_tests") and st.session_state["paste_last_result_tests"].get("code"):
+                last_code = st.session_state["paste_last_result_tests"]["code"]
+            if last_code:
                 cur = st.session_state.get("code_paste_textarea") or ""
                 if cur.strip() == "":
-                    st.session_state["code_paste_textarea"] = st.session_state["paste_last_result"]["code"]
+                    st.session_state["code_paste_textarea"] = last_code
             # Add CSS – hint "Ctrl+Enter" w tym samym jasnym szarym 3D co Zapisz/Usuń
             st.markdown("""
                 <style>
@@ -2070,15 +2046,6 @@ else:
                 help=t(lang, "Skopiuj kod tekstowy i wklej tutaj. Jeśli masz obraz, użyj opcji 'Prześlij plik ze zdjęciem'.", 
                       "Copy text code and paste here. If you have an image, use 'Upload image file' option."),
                 key="code_paste_textarea"
-            )
-            
-            # Hint pod polem – w jasnym szary 3D; w ciemnym nadpisany w globalnym CSS na złoty (.ctrl-enter-hint)
-            st.markdown(
-                f'<div style="margin-top: -10px; margin-bottom: 10px; text-align: right;">'
-                f'<span class="ctrl-enter-hint" style="font-size: 14px; font-weight: 600; color: #111827; background: linear-gradient(180deg, #e5e7eb 0%, #d1d5db 50%, #9ca3af 100%); padding: 6px 12px; border-radius: 6px; display: inline-block; border: 1px solid #9ca3af; box-shadow: 0 2px 0 #9ca3af, 0 4px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.8);">'
-                f'💡 {t(lang, "Naciśnij Ctrl+Enter aby zastosować", "Press Ctrl+Enter to apply")}'
-                f'</span></div>',
-                unsafe_allow_html=True
             )
             
             # Instrukcja odbiorcy (el5 / junior / senior) – dopisana do promptu
@@ -2131,11 +2098,15 @@ Kod:
                             )
                             content = test_response["content"]
                             st.subheader(t(lang, "Wygenerowane testy jednostkowe", "Generated Unit Tests"))
-                            st.markdown(content)
+                            m = re.search(r"```(?:\w+)?\n([\s\S]*?)```", content)
+                            if m:
+                                st.code(m.group(1).strip(), language="python")
+                            else:
+                                st.markdown(content)
                             if test_response.get("usage"):
                                 with st.expander(t(lang, "Szczegóły użycia", "Usage Details")):
                                     st.json(test_response["usage"])
-                            st.session_state["paste_last_result"] = {"type": "tests", "code": code_text, "content": content, "usage": test_response.get("usage")}
+                            st.session_state["paste_last_result_tests"] = {"code": code_text, "content": content, "usage": test_response.get("usage")}
                         except ValueError:
                             st.info(t(lang, "Aby generować testy, wprowadź klucz OpenAI API w panelu bocznym.", "To generate tests, enter your OpenAI API key in the sidebar."))
                     except Exception as e:
@@ -2250,6 +2221,11 @@ Kod do analizy:
                                     </style>
                                 """, unsafe_allow_html=True)
                                 
+                                # Kolory bloku kodu zależne od motywu (jasny: jasne tło, ciemny tekst)
+                                _code_theme = st.session_state.get("theme", "dark")
+                                _pre_bg = "#f3f4f6" if _code_theme == "light" else "#1e1e1e"
+                                _pre_fg = "#111827" if _code_theme == "light" else "#d4d4d4"
+                                _h4_color = "#1e40af" if _code_theme == "light" else "#D4AF37"
                                 # Create HTML structure for alternatives
                                 alternatives_html = '<div class="alternatives-container">'
                                 
@@ -2261,8 +2237,8 @@ Kod do analizy:
                                     
                                     alternatives_html += f'''
                                     <div class="alternative-item">
-                                        <h4 style="color: #D4AF37; margin-bottom: 10px;">{t(lang, f'Alternatywa {idx+1}', f'Alternative {idx+1}')}</h4>
-                                        <pre style="background: #1e1e1e; padding: 15px; border-radius: 5px; overflow-x: auto; color: #d4d4d4; font-family: 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word;"><code class="language-{code_lang}">{escaped_code}</code></pre>
+                                        <h4 style="color: {_h4_color}; margin-bottom: 10px;">{t(lang, f'Alternatywa {idx+1}', f'Alternative {idx+1}')}</h4>
+                                        <pre style="background: {_pre_bg}; padding: 15px; border-radius: 5px; overflow-x: auto; color: {_pre_fg}; font-family: 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word;"><code class="language-{code_lang}">{escaped_code}</code></pre>
                                     </div>
                                     '''
                                 
@@ -2277,7 +2253,13 @@ Kod do analizy:
                             st.markdown(content)
                         else:
                             st.subheader(t(lang, "Wyjaśnienie kodu", "Code Explanation"))
-                            st.markdown(response["content"])
+                            _resp_content = response["content"]
+                            _resp_code = re.search(r"```(?:\w+)?\n([\s\S]*?)```", _resp_content)
+                            if _resp_code:
+                                st.code(_resp_code.group(1).strip(), language="python")
+                                _resp_content = re.sub(r"```(?:\w+)?\n[\s\S]*?```", "", _resp_content).strip()
+                            if _resp_content:
+                                st.markdown(_resp_content)
                         
                         # Calculate and log cost
                         cost = calculate_cost(response["usage"], model=selected_model)
@@ -2359,24 +2341,40 @@ Kod:
                                 st.error(f"{t(lang, 'Błąd generowania audio:', 'Audio generation error:')} {e}")
                         
                         st.success(t(lang, f"Koszt: ${cost:.4f}", f"Cost: ${cost:.4f}"))
-                        st.session_state["paste_last_result"] = {"type": "explain", "code": code_text, "content": response["content"], "usage": response.get("usage"), "translation_level": translation_level, "voice_option": voice_option, "cost": cost}
+                        st.session_state["paste_last_result_explain"] = {"code": code_text, "content": response["content"], "usage": response.get("usage"), "translation_level": translation_level, "voice_option": voice_option, "cost": cost}
                         
                     except Exception as e:
                         st.error(f"Błąd: {e}")
 
-            # Po przełączeniu motywu (rerun) – ponów wyświetlanie ostatniego wyniku, żeby nic nie znikało
-            stored = st.session_state.get("paste_last_result")
-            code_matches = stored and (stored.get("code") == code_text if code_text else True)
-            if not do_tests and not do_explain and stored and code_matches:
-                if stored.get("type") == "tests":
-                    st.subheader(t(lang, "Wygenerowane testy jednostkowe", "Generated Unit Tests"))
-                    st.markdown(stored["content"])
-                    if stored.get("usage"):
-                        with st.expander(t(lang, "Szczegóły użycia", "Usage Details")):
-                            st.json(stored["usage"])
-                elif stored.get("type") == "explain":
-                    st.markdown(stored["content"])
-                    st.success(t(lang, f"Koszt: ${stored.get('cost', 0):.4f}", f"Cost: ${stored.get('cost', 0):.4f}"))
+            # Zawsze pokazuj oba zapisane wyniki (testy i wyjaśnienie) dla tego kodu – także zaraz po kliknięciu drugiego przycisku
+            stored_tests = st.session_state.get("paste_last_result_tests")
+            stored_explain = st.session_state.get("paste_last_result_explain")
+            code_matches_tests = stored_tests and (stored_tests.get("code") == code_text if code_text else True)
+            code_matches_explain = stored_explain and (stored_explain.get("code") == code_text if code_text else True)
+            # Po kliknięciu "testy" pokazaliśmy testy wyżej – tu dopisz tylko wyjaśnienie (jeśli jest). Po kliknięciu "wyjaśnij" – dopisz tylko testy. Gdy nic nie kliknięto – pokaż oba.
+            show_tests = code_matches_tests and stored_tests and not do_tests
+            show_explain = code_matches_explain and stored_explain and not do_explain
+            if show_tests:
+                st.subheader(t(lang, "Wygenerowane testy jednostkowe", "Generated Unit Tests"))
+                _content = stored_tests["content"]
+                _m = re.search(r"```(?:\w+)?\n([\s\S]*?)```", _content)
+                if _m:
+                    st.code(_m.group(1).strip(), language="python")
+                else:
+                    st.markdown(_content)
+                if stored_tests.get("usage"):
+                    with st.expander(t(lang, "Szczegóły użycia (testy)", "Usage Details (tests)")):
+                        st.json(stored_tests["usage"])
+            if show_explain:
+                st.subheader(t(lang, "Wyjaśnienie kodu", "Code Explanation"))
+                _explain_content = stored_explain["content"]
+                _explain_code = re.search(r"```(?:\w+)?\n([\s\S]*?)```", _explain_content)
+                if _explain_code:
+                    st.code(_explain_code.group(1).strip(), language="python")
+                    _explain_content = re.sub(r"```(?:\w+)?\n[\s\S]*?```", "", _explain_content).strip()
+                if _explain_content:
+                    st.markdown(_explain_content)
+                st.success(t(lang, f"Koszt: ${stored_explain.get('cost', 0):.4f}", f"Cost: ${stored_explain.get('cost', 0):.4f}"))
         
         elif input_method == "screenshot":
             # Snipping Tool: tylko wklejanie zrzutu (bez uploadera – upload jest w trzeciej opcji)
@@ -2477,19 +2475,23 @@ Kod:
                                         </style>
                                 """, unsafe_allow_html=True)
                                 
+                                # Kolory bloku kodu zależne od motywu
+                                _code_theme2 = st.session_state.get("theme", "dark")
+                                _pre_bg2 = "#f3f4f6" if _code_theme2 == "light" else "#1e1e1e"
+                                _pre_fg2 = "#111827" if _code_theme2 == "light" else "#d4d4d4"
+                                _h4_color2 = "#1e40af" if _code_theme2 == "light" else "#D4AF37"
                                 # Create HTML structure for alternatives
                                 alternatives_html = '<div class="alternatives-container">'
                                 
                                 for idx, (lang_type, alt_code) in enumerate(alternatives_to_show):
-                                    # Escape HTML in code
                                     import html
                                     escaped_code = html.escape(alt_code.strip())
                                     code_lang = lang_type.strip() if lang_type else "python"
                                     
                                     alternatives_html += f'''
                                     <div class="alternative-item">
-                                        <h4 style="color: #D4AF37; margin-bottom: 10px;">{t(lang, f'Alternatywa {idx+1}', f'Alternative {idx+1}')}</h4>
-                                        <pre style="background: #1e1e1e; padding: 15px; border-radius: 5px; overflow-x: auto; color: #d4d4d4; font-family: 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word;"><code class="language-{code_lang}">{escaped_code}</code></pre>
+                                        <h4 style="color: {_h4_color2}; margin-bottom: 10px;">{t(lang, f'Alternatywa {idx+1}', f'Alternative {idx+1}')}</h4>
+                                        <pre style="background: {_pre_bg2}; padding: 15px; border-radius: 5px; overflow-x: auto; color: {_pre_fg2}; font-family: 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word;"><code class="language-{code_lang}">{escaped_code}</code></pre>
                                     </div>
                                     '''
                                 
@@ -2809,11 +2811,45 @@ Na podstawie tego wyjaśnienia:
             del st.session_state.flash_message
             del st.session_state.flash_type
         
-        # Tabs – przesuwająca się kreska u dołu; kolor dopasowany do motywu (złoto / szarość)
-        _admin_theme = st.session_state.get("theme", "light")
-        if _admin_theme == "dark":
-            st.markdown("""
-            <style>
+        # Tabs – styl zależny od motywu (jasny: jasne tło, ciemny tekst)
+        _admin_theme = st.session_state.get("theme", "dark")
+        if _admin_theme == "light":
+            _admin_tabs_css = """
+            .stTabs [data-baseweb="tab-list"] {
+                background: #f3f4f6 !important;
+                border: 1px solid #9ca3af !important;
+                border-bottom: 2px solid #d1d5db !important;
+                border-radius: 12px 12px 0 0 !important;
+                padding: 10px 12px 0 12px !important;
+                gap: 6px !important;
+                min-height: 56px !important;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+            }
+            .stTabs [data-baseweb="tab"] {
+                color: #374151 !important;
+                font-weight: 600 !important;
+                font-size: 15px !important;
+                padding: 12px 20px !important;
+                border-radius: 10px 10px 0 0 !important;
+                border: 1px solid transparent !important;
+                border-bottom: none !important;
+                transition: all 0.2s ease !important;
+            }
+            .stTabs [data-baseweb="tab"]:hover {
+                color: #1f2937 !important;
+                background: #e5e7eb !important;
+            }
+            .stTabs [aria-selected="true"] {
+                color: #1e40af !important;
+                font-weight: 700 !important;
+                background: #ffffff !important;
+                border: 1px solid #9ca3af !important;
+                border-bottom: 4px solid #2563eb !important;
+                box-shadow: 0 -1px 3px rgba(0,0,0,0.06) !important;
+            }
+            """
+        else:
+            _admin_tabs_css = """
             .stTabs [data-baseweb="tab-list"] {
                 background: linear-gradient(180deg, rgba(25,28,35,0.95) 0%, rgba(18,21,27,0.98) 100%) !important;
                 border: 1px solid rgba(212, 175, 55, 0.3) !important;
@@ -2847,46 +2883,8 @@ Na podstawie tego wyjaśnienia:
                 border-bottom: 4px solid #D4AF37 !important;
                 box-shadow: 0 -2px 10px rgba(212, 175, 55, 0.2), inset 0 1px 0 rgba(255,255,255,0.06) !important;
             }
-            </style>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <style>
-            .stTabs [data-baseweb="tab-list"] {
-                background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
-                border: 1px solid #d1d5db !important;
-                border-bottom: 2px solid #e5e7eb !important;
-                border-radius: 12px 12px 0 0 !important;
-                padding: 10px 12px 0 12px !important;
-                gap: 6px !important;
-                min-height: 56px !important;
-                box-shadow: 0 2px 10px rgba(0,0,0,0.06) !important;
-            }
-            .stTabs [data-baseweb="tab"] {
-                color: #64748b !important;
-                font-weight: 600 !important;
-                font-size: 15px !important;
-                letter-spacing: 0.04em !important;
-                padding: 12px 20px !important;
-                border-radius: 10px 10px 0 0 !important;
-                border: 1px solid transparent !important;
-                border-bottom: none !important;
-                transition: all 0.2s ease !important;
-            }
-            .stTabs [data-baseweb="tab"]:hover {
-                color: #111827 !important;
-                background: rgba(0, 0, 0, 0.04) !important;
-            }
-            .stTabs [aria-selected="true"] {
-                color: #111827 !important;
-                font-weight: 700 !important;
-                background: #f3f4f6 !important;
-                border: 1px solid #9ca3af !important;
-                border-bottom: 4px solid #374151 !important;
-                box-shadow: 0 -1px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8) !important;
-            }
-            </style>
-            """, unsafe_allow_html=True)
+            """
+        st.markdown(f"<style>{_admin_tabs_css}</style>", unsafe_allow_html=True)
         tab_view, tab_add, tab_delete, tab_manage = st.tabs([
             t(lang, "Przegląd użytkowników", "View Users"),
             t(lang, "Dodaj użytkownika", "Add User"),
